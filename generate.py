@@ -4,15 +4,19 @@ import string
 
 MAX_LEN = 20
 
+
 def generate_int():
     return random.randrange(-MAX_LEN, MAX_LEN)
+
 
 def generate_str():
     l = random.randrange(MAX_LEN)
     return ''.join([random.choice(string.printable) for _ in range(l)])
 
+
 def generate_float():
     return random.random()
+
 
 def generate_bool():
     return random.random() > 0.5
@@ -23,6 +27,7 @@ VALUE_GENERATORS = {
     float: generate_float,
     bool: generate_bool,
 }
+
 
 def generate(sch, max_tries=100, ensure_valid=True):
     s = sch._schema
@@ -35,7 +40,7 @@ def generate(sch, max_tries=100, ensure_valid=True):
     elif T is dict:
         result = {}
         for k, sv in s.items():
-            if callable(getattr(k,'validate', None)) or type(k) in (type, list, tuple, set, frozenset, dict) or callable(k):
+            if callable(getattr(k, 'validate', None)) or type(k) in (type, list, tuple, set, frozenset, dict) or callable(k):
                 raise NotImplementedError
             result[k] = generate(schema.Schema(sv), max_tries)
             # Note: this consider optional items as mandatory
@@ -63,12 +68,13 @@ def generate(sch, max_tries=100, ensure_valid=True):
             result = VALUE_GENERATORS[s]()
         else:
             raise NotImplementedError
-    elif callable(getattr(s,'validate', None)):
+    elif callable(getattr(s, 'validate', None)):
         raise NotImplementedError
     else:
         result = s
     assert not ensure_valid or result == sch.validate(result)
     return result
+
 
 def _mutate_insert(seq):
     if seq:
@@ -78,6 +84,7 @@ def _mutate_insert(seq):
     else:
         return type(seq)([None])
 
+
 def _mutate_delete(seq):
     if seq:
         i = random.randrange(len(seq))
@@ -86,6 +93,7 @@ def _mutate_delete(seq):
     else:
         return seq
 
+
 def _mutate_modify(seq):
     if seq:
         i = random.randrange(len(seq))
@@ -93,6 +101,7 @@ def _mutate_modify(seq):
         return seq[:i] + type(seq)([_mutate(seq[i])]) + seq[i+1:]
     else:
         return seq
+
 
 def _mutate_swap(seq):
     if len(seq) >= 2:
@@ -148,6 +157,7 @@ MUTATORS = {
     ]
 }
 
+
 def _mutate(value):
     T = type(value)
     if T in MUTATORS:
@@ -155,6 +165,7 @@ def _mutate(value):
         return m(value)
     else:
         raise TypeError("Can't mutate value of %r" % T)
+
 
 def generate_invalid(sch, iterations=10):
     feature = generate(sch, 1, ensure_valid=False)
@@ -166,4 +177,3 @@ def generate_invalid(sch, iterations=10):
         except schema.SchemaError:
             return feature
     raise ValueError("Couldn't falsify schema")
-
