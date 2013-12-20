@@ -1,5 +1,6 @@
 import schema
 
+
 class Feature(object):
 
     input_schema = schema.Schema(object)
@@ -18,5 +19,3 @@ class Feature(object):
 
     def _evaluate(self, data_point):
         return None
-
-
