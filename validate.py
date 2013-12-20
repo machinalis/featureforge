@@ -1,4 +1,4 @@
-import feature_bench.generate
+from feature_bench import generate
 import schema
 
 EQ = 'EQ'
@@ -7,6 +7,7 @@ IN = 'IN'
 RAISES = 'RAISES'
 
 EPSILON = 0.01
+
 
 def _raise_predicate(spec, data, exception):
     try:
@@ -22,8 +23,10 @@ _PREDICATES = {
     RAISES: _raise_predicate
 }
 
+
 def failures(feature_spec, fixture):
     return result
+
 
 class FeatureFixtureCheckMixin(object):
 
@@ -44,19 +47,20 @@ class FeatureFixtureCheckMixin(object):
             try:
                 feature_spec.output_schema.validate(feature)
             except schema.SchemaError:
-                self.fail("Invalid output schema; input=%r output=%r" % (data_point, feature))
+                self.fail("Invalid output schema; input=%r output=%r" %
+                          (data_point, feature))
 
 ### EXAMPLE ###
 
 if __name__ == "__main__":
     from feature_bench.feature import Feature
-    from schema import Schema, And, SchemaError
+    from schema import Schema, And
     import unittest
 
     class Length(Feature):
         input_schema = Schema(str)
         output_schema = And(int, lambda n: n >= 0)
-        
+
         def _evaluate(self, data_point):
             return len(data_point)
 
@@ -75,4 +79,3 @@ if __name__ == "__main__":
             self.assert_passes_fuzz(Length())
 
     unittest.main()
-

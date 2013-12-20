@@ -26,6 +26,7 @@ VALUE_GENERATORS = {
     str: generate_str,
     float: generate_float,
     bool: generate_bool,
+    unicode: lambda: unicode(generate_str())
 }
 
 
