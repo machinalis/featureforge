@@ -1,4 +1,4 @@
-import generate
+import feature_bench.generate
 import schema
 
 EQ = 'EQ'
