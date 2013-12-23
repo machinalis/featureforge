@@ -1,6 +1,30 @@
 import schema
 
 
+def soft_schema(**kwargs):
+    """
+        soft_schema(k1=schema1, k2=schema2, ...)
+
+    Returns a schema for dicts having the keys k1, k2, ... and possibly other
+    string keys not explicitly stated. The schema for the values is the one
+    provided (i.e. schema for k2 is Schema(schema2)). Other keys have
+    Schema(object).
+
+    If one of the inner schemas given is a dict, it's interpreted as a soft
+    dictionary schema too.
+    """
+
+    def _transform(d):
+        result = d.copy()
+        for k, v in result.items():
+            if isinstance(v, dict):
+                result[k] = _transform(v)
+        result[schema.Optional(str)] = object
+        return result
+
+    return schema.Schema(_transform(kwargs))
+
+
 class Feature(object):
 
     input_schema = schema.Schema(object)

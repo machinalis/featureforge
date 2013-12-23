@@ -41,6 +41,9 @@ def generate(sch, max_tries=100, ensure_valid=True):
     elif T is dict:
         result = {}
         for k, sv in s.items():
+            if isinstance(k, schema.Optional):
+                # Do not generate optional items
+                continue
             if callable(getattr(k, 'validate', None)) or type(k) in (type, list, tuple, set, frozenset, dict) or callable(k):
                 raise NotImplementedError
             result[k] = generate(schema.Schema(sv), max_tries)
