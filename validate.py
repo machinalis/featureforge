@@ -23,9 +23,12 @@ _PREDICATES = {
     RAISES: _raise_predicate
 }
 
-
-def failures(feature_spec, fixture):
-    return result
+_EXPLAIN_PREDICATE_FAIL = {
+    EQ: 'is not equal',
+    APPROX: 'is not approx',
+    IN: 'is not in',
+    RAISES: 'not raised'
+}
 
 
 class FeatureFixtureCheckMixin(object):
@@ -34,8 +37,12 @@ class FeatureFixtureCheckMixin(object):
         failures = []
         for label, (data_point, predicate, value) in fixture.items():
             if not _PREDICATES[predicate](feature_spec, data_point, value):
-                failures.append(label)
-        self.assertEqual(failures, [])
+                msg = '%s failed, %s %s %s' % (
+                    label, feature_spec(data_point),
+                    _EXPLAIN_PREDICATE_FAIL[predicate],
+                    value)
+                failures.append(msg)
+        self.assertFalse(failures, msg='; '.join(failures))
 
     def assert_passes_fuzz(self, feature_spec, tries=1000):
         for i in xrange(tries):
