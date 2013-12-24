@@ -28,13 +28,25 @@ def generate_datetime():
     rand_seconds = random.randrange(seconds * 2)
     return datetime.utcfromtimestamp(rand_seconds)
 
+
+def generate_dict():
+    result = {}
+    keys_nr = random.choice(xrange(1, 6))
+    # we dont want infitite recursion
+    value_factories = [f for t, f in VALUE_GENERATORS.items() if t is not dict]
+    for idx in xrange(keys_nr):
+        key = generate_str()
+        result[key] = random.choice(value_factories)()
+    return result
+
 VALUE_GENERATORS = {
     int: generate_int,
     str: generate_str,
     float: generate_float,
     bool: generate_bool,
     unicode: lambda: unicode(generate_str()),
-    datetime: generate_datetime
+    datetime: generate_datetime,
+    dict: generate_dict
 }
 
 
