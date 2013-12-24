@@ -1,3 +1,4 @@
+from datetime import datetime
 import random
 import schema
 import string
@@ -21,12 +22,19 @@ def generate_float():
 def generate_bool():
     return random.random() > 0.5
 
+
+def generate_datetime():
+    seconds = int((datetime.now() - datetime.utcfromtimestamp(0)).total_seconds())
+    rand_seconds = random.randrange(seconds * 2)
+    return datetime.utcfromtimestamp(rand_seconds)
+
 VALUE_GENERATORS = {
     int: generate_int,
     str: generate_str,
     float: generate_float,
     bool: generate_bool,
-    unicode: lambda: unicode(generate_str())
+    unicode: lambda: unicode(generate_str()),
+    datetime: generate_datetime
 }
 
 
