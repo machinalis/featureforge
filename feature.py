@@ -24,6 +24,36 @@ def soft_schema(**kwargs):
 
     return schema.Schema(_transform(kwargs))
 
+def has_nones(data, data_schema):
+    """
+    Returns True iff data has any none in the places where the schema
+    requires somethign else.
+    
+    Assumptions:
+     * not schema.validate(data)
+     * keys in dictionaries are just keys, not schemas
+
+    """
+    if data is None:
+        return True
+    while isinstance(data_schema, schema.Schema):
+        data_schema = data_schema._schema
+    if isinstance(data_schema, dict):
+        for k in data_schema:
+            if isinstance(k, schema.Optional):
+                # Ignore optional values
+                continue
+            elif k in data:
+                try:
+                    v = schema.Schema(data_schema[k]).validate(data[k])
+                except schema.SchemaError:
+                    if has_nones(data[k], data_schema[k]):
+                        return True
+            else:
+                # Schema failed because fo missing keys, not because of a None
+                return False
+    return False
+    
 
 class Feature(object):
 
@@ -34,6 +64,8 @@ class Feature(object):
         try:
             data_point = self.input_schema.validate(data_point)
         except schema.SchemaError as e:
+            if hasattr(self, 'default') and has_nones(data_point, self.input_schema):
+                return self.default
             raise ValueError(e)
         result = self._evaluate(data_point)
         try:
