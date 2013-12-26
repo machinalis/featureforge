@@ -24,8 +24,7 @@ def generate_bool():
 
 
 def generate_datetime():
-    seconds = int((datetime.now() - datetime.utcfromtimestamp(0)).total_seconds())
-    rand_seconds = random.randrange(seconds * 2)
+    rand_seconds = random.randrange(0x7fffffff)
     return datetime.utcfromtimestamp(rand_seconds)
 
 
