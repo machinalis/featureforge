@@ -24,11 +24,12 @@ def soft_schema(**kwargs):
 
     return schema.Schema(_transform(kwargs))
 
+
 def has_nones(data, data_schema):
     """
     Returns True iff data has any none in the places where the schema
     requires somethign else.
-    
+
     Assumptions:
      * not schema.validate(data)
      * keys in dictionaries are just keys, not schemas
@@ -53,7 +54,7 @@ def has_nones(data, data_schema):
                 # Schema failed because fo missing keys, not because of a None
                 return False
     return False
-    
+
 
 class Feature(object):
 
