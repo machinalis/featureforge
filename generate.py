@@ -49,7 +49,7 @@ VALUE_GENERATORS = {
 }
 
 
-def generate(sch, max_tries=100, ensure_valid=True):
+def generate(sch, max_tries=200, ensure_valid=True):
     s = sch._schema
     # Not using isinstance, because schema doesn't
     T = type(s)
