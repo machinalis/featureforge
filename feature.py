@@ -61,6 +61,8 @@ def has_nones(data, data_schema):
             except schema.SchemaError:
                 if has_nones(v, or_schema):
                     return True
+    elif isinstance(data_schema, schema.And):
+        return has_nones(data, data_schema._args[0])
     return False
 
 
