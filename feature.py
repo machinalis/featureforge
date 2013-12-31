@@ -53,6 +53,14 @@ def has_nones(data, data_schema):
             else:
                 # Schema failed because fo missing keys, not because of a None
                 return False
+    elif isinstance(data_schema, (list, tuple)):
+        or_schema = schema.Or(*data_schema)
+        for v in data:
+            try:
+                v = or_schema.validate(v)
+            except schema.SchemaError:
+                if has_nones(v, or_schema):
+                    return True
     return False
 
 
