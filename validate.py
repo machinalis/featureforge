@@ -57,6 +57,24 @@ class FeatureFixtureCheckMixin(object):
                 self.fail("Invalid output schema; input=%r output=%r" %
                           (data_point, feature))
 
+
+class BaseFeatureFixture(FeatureFixtureCheckMixin):
+    feature = None  # Needs to be defined on subclasses
+
+    def test_fixtures(self):
+        self.assert_feature_passes_fixture(self.feature(), self.fixtures)
+
+    def test_fuzz(self):
+        self.assert_passes_fuzz(self.feature())
+
+    def test_has_valid_default(self):
+        f = self.feature()
+        self.assertTrue(hasattr(f, 'default'))
+        try:
+            f.output_schema.validate(f.default)
+        except schema.SchemaError:
+            self.fail("Invalid default value according output schema")
+
 ### EXAMPLE ###
 
 if __name__ == "__main__":
