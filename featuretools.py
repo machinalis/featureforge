@@ -43,7 +43,7 @@ def _build_train(train, feature):
 
 
 def get_feature_stats(feature, corpus, sample_size=1000):
-    train, dev, _ = corpus(limit=sample_size)
+    train, test = corpus(limit=sample_size)
     name = get_feature_name(feature)
     xs, ctr, misses = _build_train(train, feature)
 
@@ -89,7 +89,7 @@ def get_feature_stats(feature, corpus, sample_size=1000):
         d = {"type": "array"}
     d["name"] = get_feature_name(feature)
     d["trainsize"] = len(xs)
-    d["testsize"] = len(dev)
+    d["testsize"] = len(test)
     d["invalid"] = misses
 
     regressor = LinearRegression().fit(ys, ctr)
