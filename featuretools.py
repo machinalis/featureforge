@@ -15,16 +15,8 @@ class NoTrainDataError(Exception):
     pass
 
 
-def get_feature_name(feature):
-    if not isinstance(feature, Feature):
-        raise ValueError("feature must be instance of Feature")
-    if hasattr(feature, "name"):
-        return feature.name
-    return feature.__class__.__name__
-
-
 def _build_train(train, feature):
-    name = get_feature_name(feature)
+    name = feature.name
     xs = []
     ctr = []
     misses = 0
@@ -44,7 +36,7 @@ def _build_train(train, feature):
 
 def get_feature_stats(feature, corpus, sample_size=1000):
     train, test = corpus(limit=sample_size)
-    name = get_feature_name(feature)
+    name = feature.name
     xs, ctr, misses = _build_train(train, feature)
 
     vectorizer = FeatureMappingVectorizer()
@@ -87,7 +79,7 @@ def get_feature_stats(feature, corpus, sample_size=1000):
         }
     else:
         d = {"type": "array"}
-    d["name"] = get_feature_name(feature)
+    d["name"] = name
     d["trainsize"] = len(xs)
     d["testsize"] = len(test)
     d["invalid"] = misses

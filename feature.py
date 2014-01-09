@@ -71,6 +71,10 @@ class Feature(object):
     input_schema = schema.Schema(object)
     output_schema = schema.Schema(object)
 
+    @property
+    def name(self):
+        return type(self).__name__
+
     def __call__(self, data_point):
         try:
             data_point = self.input_schema.validate(data_point)
