@@ -71,6 +71,12 @@ class Feature(object):
     input_schema = schema.Schema(object)
     output_schema = schema.Schema(object)
 
+    class InputValueError(ValueError):
+        pass
+
+    class OutputValueError(ValueError):
+        pass
+
     @property
     def name(self):
         return type(self).__name__
@@ -81,12 +87,12 @@ class Feature(object):
         except schema.SchemaError as e:
             if hasattr(self, 'default') and has_nones(data_point, self.input_schema):
                 return self.default
-            raise ValueError(e)
+            raise self.InputValueError(e)
         result = self._evaluate(data_point)
         try:
             return self.output_schema.validate(result)
         except schema.SchemaError as e:
-            raise ValueError(e)
+            raise self.OutputValueError(e)
 
     def _evaluate(self, data_point):
         return None
