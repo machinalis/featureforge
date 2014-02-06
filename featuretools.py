@@ -8,7 +8,6 @@ import numpy
 import pylab
 
 from feature_bench.featurevectorizer import FeatureMappingVectorizer
-from feature_bench.feature import Feature
 
 
 class NoTrainDataError(Exception):
