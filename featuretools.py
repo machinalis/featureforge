@@ -81,7 +81,7 @@ def get_feature_stats(feature, corpus, sample_size=1000):
         d = {"type": "array"}
     d["name"] = name
     d["trainsize"] = len(xs)
-    d["testsize"] = len(test)
+    d["testsize"] = len(list(test))
     d["invalid"] = misses
 
     regressor = LinearRegression().fit(ys, ctr)
