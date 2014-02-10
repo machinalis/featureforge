@@ -1,6 +1,7 @@
-import logging
-from feature_bench.cache import disk_cache, lru_cache
 from collections import defaultdict
+import logging
+
+from feature_bench.cache import disk_cache, lru_cache
 
 
 logger = logging.getLogger(__name__)
