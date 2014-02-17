@@ -26,17 +26,17 @@ class TestFeatureMappingVectorizer(unittest.TestCase):
         V = FeatureMappingVectorizer()
         V.fit(X)
         V = FeatureMappingVectorizer()
-        V.fit(next(self._get_random_dicts()))  # Test that works for one dict
+        V.fit([next(self._get_random_dicts())])  # Test that works for one dict
 
     def test_fit_bad_values(self):
         random.seed("the alphabet city elite")
         V = FeatureMappingVectorizer()
-        self.assertRaises(ValueError, V.fit, {})  # keys are strings
-        self.assertRaises(ValueError, V.fit, {1: 1})  # keys are strings
-        self.assertRaises(ValueError, V.fit, {"a": {}})
-        self.assertRaises(ValueError, V.fit, {"a": []})
-        self.assertRaises(ValueError, V.fit, {"a": random})
-        self.assertRaises(ValueError, V.fit, {"a": [1, u"a"]})
+        self.assertRaises(ValueError, V.fit, [{}])  # keys are strings
+        self.assertRaises(ValueError, V.fit, [{1: 1}])  # keys are strings
+        self.assertRaises(ValueError, V.fit, [{"a": {}}])
+        self.assertRaises(ValueError, V.fit, [{"a": []}])
+        self.assertRaises(ValueError, V.fit, [{"a": random}])
+        self.assertRaises(ValueError, V.fit, [{"a": [1, u"a"]}])
         self.assertRaises(ValueError, V.fit, [{"a": 1}, {"a": "a"}])
 
     def test_transform_empty(self):
@@ -58,7 +58,7 @@ class TestFeatureMappingVectorizer(unittest.TestCase):
         m = 3 + 3 + 5  # 3 float, 1 enum, 1 list
         self.assertEqual(Z.shape, (n, m))
         d = next(self._get_random_dicts())
-        Z = V.transform(d)  # Test that works for one dict too
+        Z = V.transform([d])  # Test that works for one dict too
         self.assertEqual(Z.shape, (1, m))
 
     def test_transform_bad_values(self):

@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
+import collections
 import logging
 import numpy
 
 from schema import Schema, SchemaError, Use, Or
-
-from feature_bench.cache import lru_cache
 
 logger = logging.getLogger(__name__)
 
@@ -50,22 +49,6 @@ class SequenceValidator(object):
         return str(self)
 
 
-class VectorizerCacheKey(object):
-
-    def __init__(self, X, vectorizer):
-        self.X = X
-        self.vectorizer = vectorizer
-
-    def _key(self):
-        return id(self.X)
-
-    def __eq__(self, other):
-        return self._key() == other._key()
-
-    def __hash__(self):
-        return hash(self._key())
-
-
 class FeatureMappingVectorizer(object):
     """
     This class maps feature dicts into numpy arrays.
@@ -108,17 +91,23 @@ class FeatureMappingVectorizer(object):
     fitting.
     """
     def fit(self, X, y=None):  # `y` is to comply with sklearn estimator
-        return self._wrapcall(self.cached_fit, X)
+        """X must be a list, sequence or iterable points,
+        but not a single data point.
+        """
+        return self._wrapcall(self._fit, X)
 
     def transform(self, X, y=None):
-        return self._wrapcall(self.cached_transform, X)
+        """X must be a list, sequence or iterable points,
+        but not a single data point.
+        """
+        return self._wrapcall(self._transform, X)
 
     def fit_transform(self, X, y=None):
         self.fit(X)
         return self.transform(X)
 
     def _wrapcall(self, method, X):
-        if isinstance(X, dict):
+        if not isinstance(X, collections.Iterable):
             X = [X]
         try:
             return method(X)
@@ -133,16 +122,7 @@ class FeatureMappingVectorizer(object):
                                      "previously".format(key))
             yield validator.validate(fdict)
 
-    def cached_fit(self, X):
-        logger.info("Lookup vectorizer.fit in cache, id=%d", id(X))
-        k = VectorizerCacheKey(X, self)
-        self.schema, self.validator, self.indexes = self._fit(k)
-        return self
-
-    @staticmethod
-    @lru_cache(maxsize=4)
-    def _fit(k):
-        X = k.X
+    def _fit(self, X):
         try:
             first = X[0]
         except IndexError:
@@ -168,7 +148,7 @@ class FeatureMappingVectorizer(object):
             schema[name] = type_
         validator = Schema(schema)
 
-        for fdict in k.vectorizer._iter_valid(X, schema, validator):
+        for fdict in self._iter_valid(X, schema, validator):
             for name, data in fdict.iteritems():
                 if isinstance(data, basestring):
                     key = (name, data)
@@ -177,18 +157,10 @@ class FeatureMappingVectorizer(object):
                         reverse.append(key)
 
         logger.info("Finished vectorizer.fit id=%d", id(X))
-        return schema, validator, indexes
+        self.schema, self.validator, self.indexes = schema, validator, indexes
+        return self
 
-    def cached_transform(self, X):
-        logger.info("Lookup vectorizer.transform in cache, id=%d", id(X))
-        k = VectorizerCacheKey(X, self)
-        return self._transform(k)
-
-    @staticmethod
-    @lru_cache(maxsize=4)
-    def _transform(k):
-        X = k.X
-        self = k.vectorizer
+    def _transform(self, X):
         logger.info("Starting vectorizer.transform, id=%d", id(X))
         matrix = []
 
