@@ -1,7 +1,7 @@
 from collections import defaultdict
 import logging
 
-from feature_bench.cache import disk_cache, lru_cache
+from feature_bench.cache import lru_cache
 
 
 logger = logging.getLogger(__name__)
@@ -28,13 +28,9 @@ class FeatureCacheKey(object):
 
 class FeatureEvaluator(object):
 
-    def __init__(self, features, data_hash_key=None):
+    def __init__(self, features):
         self.features = features
         self.training_stats = None
-        if data_hash_key is not None:
-            self.disk_cache_key_transform = 'evaluation_transform_%s' % data_hash_key
-        else:
-            self.disk_cache_key_transform = None
 
     def fit(self, X, y=None):
         return self
@@ -48,15 +44,14 @@ class FeatureEvaluator(object):
             to_exclude = self.training_stats['excluded_features']
             features = [f for f in features if f not in to_exclude]
         k = FeatureCacheKey(X, features)
-        result, stats = self._transform(k, self.disk_cache_key_transform, is_train)
+        result, stats = self._transform(k, is_train)
         if self.training_stats is None:
             self.training_stats = stats
         return result
 
     @staticmethod
     @lru_cache(maxsize=4)
-    @disk_cache
-    def _transform(key, disk_cache_key, is_train):
+    def _transform(key, is_train):
         """This is a static method, because we need not to include "self" as an argument,
         otherwise lru_cache wont be able to it's magic when called from different
         instances"""
