@@ -1,7 +1,6 @@
 import mock
 from unittest import TestCase
 from feature_bench import evaluator  # Imported like this to help mocking
-from feature_bench import cache
 from schema import And
 
 from feature_bench.feature import Feature, soft_schema
@@ -50,7 +49,7 @@ SAMPLES = [
 ]
 
 
-class ActualEvaluatorFailuresToleranceTests(TestCase):
+class ActualEvaluatorFailureToleranceTests(TestCase):
     def setUp(self):
         features = [CaptionFeature(), DumbFeatureA()]
         self.ev = evaluator.ActualEvaluator(features[:])
@@ -169,8 +168,8 @@ class FeatureEvaluatorTests(TestCase):
             actual_transform_mock.return_value = [], {'discarded_samples': [],
                                                       'excluded_features': []}
             ev.transform(SAMPLES[:])
-            ev.transform(SAMPLES[:] + [{}])  # becareful with avoid lru caching
-            ev.transform(SAMPLES[:] + [{}] + [{}])  # becareful with avoid lru caching
+            ev.transform(SAMPLES[:] + [{}])
+            ev.transform(SAMPLES[:] + [{}] + [{}])
             self.assertEqual(actual_transform_mock.call_count, 3)
             for call in actual_transform_mock.call_args_list[1:]:
                 self.assertEqual(call[1], {'train_mode': False})
@@ -188,54 +187,4 @@ class FeatureEvaluatorTests(TestCase):
             ev.transform(SAMPLES[:])
             actual_new.assert_called_once_with(features[:-1])
 
-
-class TestEvaluatorCaches(TestCase):
-    # Testing the behavior of lru_cache and on Evaluation transform
-
-    def tearDown(self):
-        reload(cache)
-        reload(evaluator)
-
-    def test_RAM_cache__same_call_doesnt_execute_ActualEvaluation(self):
-        # also known as RAM cache
-
-        from feature_bench import settings as cache_settings
-        with mock.patch.object(cache_settings, 'ENABLED_CACHES', ['ram']):
-            reload(cache)
-            reload(evaluator)
-            ev = evaluator.FeatureEvaluator([])
-            ev2 = evaluator.FeatureEvaluator([])
-            ev3 = evaluator.FeatureEvaluator([])
-            with mock.patch.object(evaluator.ActualEvaluator,
-                                   'transform') as actual_transform_mock:
-                actual_transform_mock.return_value = [], mock.MagicMock()
-                samples_list = SAMPLES[:]  # it depents on the python id of the samples
-                ev.transform(samples_list)
-                self.assertEqual(actual_transform_mock.call_count, 1)
-                # Now transforming again with same samples on same evaluator, produces no
-                # call
-                ev2.transform(samples_list)
-                self.assertEqual(actual_transform_mock.call_count, 1)
-                # Transforming again with pseudo same samples, do produce another call.
-                # And I said pseudo, cause it's a different python list
-                ev3.transform(list(samples_list))
-                self.assertEqual(actual_transform_mock.call_count, 2)
-
-    def test_RAM_cache_can_be_disabled(self):
-        from feature_bench import settings as cache_settings
-        enabled_caches = []
-        with mock.patch.object(cache_settings, 'ENABLED_CACHES', enabled_caches):
-            reload(cache)
-            reload(evaluator)
-            ev = evaluator.FeatureEvaluator([])
-            ev2 = evaluator.FeatureEvaluator([])
-            with mock.patch.object(evaluator.ActualEvaluator,
-                                   'transform') as actual_transform_mock:
-                actual_transform_mock.return_value = [], mock.MagicMock()
-                samples_list = SAMPLES[:]  # it depents on the python id of the samples
-                ev.transform(samples_list)
-                self.assertEqual(actual_transform_mock.call_count, 1)
-                ev2.transform(samples_list)
-                # Although both calls were made with same arguments, cache was disabled.
-                self.assertEqual(actual_transform_mock.call_count, 2)
 

@@ -1,29 +1,10 @@
 from collections import defaultdict
 import logging
 
-from feature_bench.cache import lru_cache
-
-
 logger = logging.getLogger(__name__)
 
 
 LOG_STEP = 500
-
-
-class FeatureCacheKey(object):
-
-    def __init__(self, X, features):
-        self.X = X
-        self.features = features
-
-    def _key(self):
-        return (id(self.X),) + tuple(f.name for f in self.features)
-
-    def __eq__(self, other):
-        return self._key() == other._key()
-
-    def __hash__(self):
-        return hash(self._key())
 
 
 class FeatureEvaluator(object):
@@ -36,47 +17,47 @@ class FeatureEvaluator(object):
         return self
 
     def transform(self, X, y=None):
-        logger.info("Lookup feature evaluation id=%d from cache", id(X))
         features = self.features
         is_train = True
         if self.training_stats is not None:
             is_train = False  # We dont support incremental trainings.
             to_exclude = self.training_stats['excluded_features']
             features = [f for f in features if f not in to_exclude]
-        k = FeatureCacheKey(X, features)
-        result, stats = self._transform(k, is_train)
+
+        logger.info("Starting feature evaluation id=%d", id(X))
+        ae = ActualEvaluator(features)
+        result, stats = ae.transform(X, train_mode=is_train)
+        logger.info("Finished feature evaluation id=%d", id(X))
+
         if self.training_stats is None:
             self.training_stats = stats
         return result
-
-    @staticmethod
-    @lru_cache(maxsize=4)
-    def _transform(key, is_train):
-        """This is a static method, because we need not to include "self" as an argument,
-        otherwise lru_cache wont be able to it's magic when called from different
-        instances"""
-        X = key.X
-        logger.info("Starting feature evaluation id=%d", id(X))
-        ae = ActualEvaluator(key.features)
-        result, stats = ae.transform(X, train_mode=is_train)
-        logger.info("Finished feature evaluation id=%d", id(X))
-        return result, stats
 
 
 class ActualEvaluator(object):
     """Actual Evaluator Manager.
 
-    The FeatureEvaluator is more a wrapper that handles caching or actual-evaluation
-    depending on the case.
+    The FeatureEvaluator is more a wrapper that handles what to do differently
+    if training or not.
     This instead, is the implementation of the algorithm needed for computing the
     pure evaluation of features, with some tolerance to failures.
     """
 
-    # When evaluating the first N data-points, if there's an error with a feature, that
-    # feature is automatically excluded from the regressor (strict mode).
-    # If error occurs on later data-points and FEATURE_MAX_ERRORS_ALLOWED is not exceeded
-    # the feature default (if present) will be returned instead; if not, the feature will
-    # be excluded from the regressor.
+    # Tolerance to failures:
+    # a) Samples are always discarded when failing:
+    #     If a given sample fails when evaluating a feature with it, no matter
+    #     what, no matter when, the sample is discarded.
+    # b) Features can be discarded or not, depending on the configuration:
+    #     - When evaluating the first N data-points, if there's an error with a
+    #       feature, that feature is automatically excluded (strict mode).
+    #     - If error occurs on later data-points and FEATURE_MAX_ERRORS_ALLOWED
+    #       was exceeded for that feature, the feature is discarded. If not
+    #       exceeded, an internal counter will be increated for that feature.
+    #    Each time that a feature is discarded, the following things happen:
+    #      - every sampled that was discarded because of this feature,
+    #        is re-considered.
+    #      - every previously evaluated sample is stripped off of the result
+    #        of this feature.
     FEATURE_STRICT_UNTIL = 100
     FEATURE_MAX_ERRORS_ALLOWED = 5
 
