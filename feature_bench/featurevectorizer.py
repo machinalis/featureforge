@@ -109,7 +109,10 @@ class FeatureMappingVectorizer(object):
     def _wrapcall(self, method, X):
         if not isinstance(X, collections.Iterable):
             X = [X]
-        return method(X)
+        try:
+            return method(X)
+        except SchemaError as e:
+            raise ValueError(*e.args)
 
     def _iter_valid(self, X, schema, validator):
         for fdict in X:
