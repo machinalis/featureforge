@@ -1,5 +1,6 @@
-import schema
+import functools
 
+import schema
 
 def soft_schema(**kwargs):
     """
@@ -79,7 +80,7 @@ class Feature(object):
 
     @property
     def name(self):
-        return type(self).__name__
+        return getattr(self, "_name", type(self).__name__)
 
     def __call__(self, data_point):
         try:
@@ -96,3 +97,50 @@ class Feature(object):
 
     def _evaluate(self, data_point):
         return None
+
+# Simple API
+
+def make_feature(f):
+    """
+    Given a function f: data point -> feature that computes a feature, upgrade
+    it to a feature instance.
+    """
+    if not callable(f):
+        raise TypeError("f must be callable")
+    result = Feature()
+    result._evaluate = f
+    result._name = getattr(f, "_name", f.__name__)
+    input_schema = getattr(f, "_input_schema", None)
+    output_schema = getattr(f, "_output_schema", None)
+    if input_schema is not None:
+        result.input_schema = input_schema
+    if output_schema is not None:
+        result.output_schema = output_schema
+    return result
+
+
+def _build_schema(*args, **kwargs):
+    assert not kwargs # TODO: support object attributes
+    return schema.And(*args)
+
+
+def input_schema(*args, **kwargs):
+    def decorate(f):
+        f._input_schema = _build_schema(*args, **kwargs)
+        return f
+    return decorate
+
+
+def output_schema(*args, **kwargs):
+    def decorate(f):
+        f._output_schema = _build_schema(*args, **kwargs)
+        return f
+    return decorate
+
+
+def feature_name(name):
+    def decorate(f):
+        f._feature_name = name
+        return f
+    return decorate
+
