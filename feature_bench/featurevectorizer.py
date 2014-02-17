@@ -4,7 +4,7 @@ import numpy
 
 from schema import Schema, SchemaError, Use, Or
 
-from feature_bench.cache import disk_cache, lru_cache
+from feature_bench.cache import lru_cache
 
 logger = logging.getLogger(__name__)
 
@@ -107,14 +107,6 @@ class FeatureMappingVectorizer(object):
     numpy arrays as long as they comply with the schema inferred during
     fitting.
     """
-    def __init__(self, data_hash_key=None):
-        if data_hash_key is not None:
-            self.disk_cache_key_fit = 'vectorization_fit_%s' % data_hash_key
-            self.disk_cache_key_transform = 'vectorization_transform_%s' % data_hash_key
-        else:
-            self.disk_cache_key_fit = None
-            self.disk_cache_key_transform = None
-
     def fit(self, X, y=None):  # `y` is to comply with sklearn estimator
         return self._wrapcall(self.cached_fit, X)
 
@@ -144,13 +136,12 @@ class FeatureMappingVectorizer(object):
     def cached_fit(self, X):
         logger.info("Lookup vectorizer.fit in cache, id=%d", id(X))
         k = VectorizerCacheKey(X, self)
-        self.schema, self.validator, self.indexes = self._fit(k, self.disk_cache_key_fit)
+        self.schema, self.validator, self.indexes = self._fit(k)
         return self
 
     @staticmethod
     @lru_cache(maxsize=4)
-    @disk_cache
-    def _fit(k, disk_cache_key):
+    def _fit(k):
         X = k.X
         try:
             first = X[0]
@@ -191,12 +182,11 @@ class FeatureMappingVectorizer(object):
     def cached_transform(self, X):
         logger.info("Lookup vectorizer.transform in cache, id=%d", id(X))
         k = VectorizerCacheKey(X, self)
-        return self._transform(k, self.disk_cache_key_transform)
+        return self._transform(k)
 
     @staticmethod
     @lru_cache(maxsize=4)
-    @disk_cache
-    def _transform(k, disk_cache_key):
+    def _transform(k):
         X = k.X
         self = k.vectorizer
         logger.info("Starting vectorizer.transform, id=%d", id(X))

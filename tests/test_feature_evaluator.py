@@ -2,7 +2,6 @@ import mock
 from unittest import TestCase
 from feature_bench import evaluator  # Imported like this to help mocking
 from feature_bench import cache
-from feature_bench.disk_cache import CacheOnDisk
 from schema import And
 
 from feature_bench.feature import Feature, soft_schema
@@ -191,7 +190,7 @@ class FeatureEvaluatorTests(TestCase):
 
 
 class TestEvaluatorCaches(TestCase):
-    # Testing the behavior of lru_cache and disk_cache on Evaluation transform
+    # Testing the behavior of lru_cache and on Evaluation transform
 
     def tearDown(self):
         reload(cache)
@@ -240,31 +239,3 @@ class TestEvaluatorCaches(TestCase):
                 # Although both calls were made with same arguments, cache was disabled.
                 self.assertEqual(actual_transform_mock.call_count, 2)
 
-    def test_DISK_cache_is_used_when_no_ram_cache_hit(self):
-        # obviously, first call has no ram hit, so that shall use Disk cache
-        features = [DumbFeatureA()]
-
-        def p_o(name):  # shortcut
-            return mock.patch.object(
-                CacheOnDisk, name,
-                side_effect=getattr(CacheOnDisk, name),
-                autospec=True)
-
-        from feature_bench import settings as cache_settings
-        with mock.patch.object(cache_settings, 'ENABLED_CACHES', ['ram', 'disk']):
-            reload(cache)
-            reload(evaluator)
-            with p_o('adjust_key') as m_adjust_key, p_o('get_data') as m_get_data, \
-                 p_o('store_data') as m_store_data:
-                samples_list = SAMPLES[:]
-                ev = evaluator.FeatureEvaluator(features)
-                ev.transform(samples_list)
-                self.assertEqual(m_adjust_key.call_count, 1)
-                self.assertEqual(m_get_data.call_count, 1)
-                self.assertEqual(m_store_data.call_count, 1)
-                # And now that ram cache does a hit, no new calls are made
-                ev2 = evaluator.FeatureEvaluator(features)
-                ev2.transform(samples_list)
-                self.assertEqual(m_adjust_key.call_count, 1)
-                self.assertEqual(m_get_data.call_count, 1)
-                self.assertEqual(m_store_data.call_count, 1)
