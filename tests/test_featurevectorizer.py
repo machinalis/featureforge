@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import unittest
 import random
-from feature_bench.featurevectorizer import FeatureMappingVectorizer, CacheOfSizeOne
+from feature_bench.featurevectorizer import FeatureMappingVectorizer
 
 
 class TestFeatureMappingVectorizer(unittest.TestCase):
@@ -75,23 +75,3 @@ class TestFeatureMappingVectorizer(unittest.TestCase):
         self.assertRaises(ValueError, V.transform, d)
         d[u"j€nµmeæcħeid"] = "coca"  # Not unicode
         self.assertRaises(ValueError, V.transform, d)
-
-
-class TestCacheOfSizeOne(unittest.TestCase):
-    def test_calls_N_times(self):
-        count = {0: 0}
-
-        def f(x):
-            count[0] += 1
-            return x
-        g = CacheOfSizeOne(f)
-
-        inputs = [0] + range(3) + range(2, 6)
-        for x in inputs:  # 1 0 1 1 0 1 1 1
-            self.assertEqual(x, g(x))
-
-        self.assertEqual(count[0], 6)
-
-
-if __name__ == "__main__":
-    unittest.main()

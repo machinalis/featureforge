@@ -215,23 +215,3 @@ class FeatureMappingVectorizer(object):
         logger.info("Finished vectorizer.transform, id=%d", id(X))
         logger.info("Matrix has size %sx%s" % result.shape)
         return result
-
-
-class CacheOfSizeOne(object):
-    """ Function wrapper that provides caching for the last value evaluated."""
-    f = None
-
-    def __init__(self, f):
-        self.f = f
-        self.args = None
-        self.kwargs = None
-
-    def __call__(self, *args, **kwargs):
-        if args != self.args or kwargs != self.kwargs:
-            self.result = self.f(*args, **kwargs)
-            self.args = args
-            self.kwargs = kwargs
-        return self.result
-
-    def __getattr__(self, name):
-        return getattr(self.f, name)
