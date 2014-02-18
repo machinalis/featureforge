@@ -115,6 +115,16 @@ class TestFeatureBuilding(TestCase):
         with self.assertRaises(f.InputValueError):
             f(invalid)
 
+    def test_soft_schema(self):
+        @input_schema({'key': int})
+        def key(d):
+            return d['key']
+        f = make_feature(key)
+        # Dictionary schemas work more or less normally...
+        self.assertEqual(f({'key': 42}), 42)
+        # except that they aren't strict with extra keys:
+        self.assertEqual(f({'key': 42, 'another': 37}), 42)
+
 
 class TestObjectSchema(TestCase):
 

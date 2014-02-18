@@ -148,10 +148,17 @@ def make_feature(f):
 
 
 def _build_schema(*args, **kwargs):
+    args = list(args)
+    for i, a in enumerate(args):
+        if isinstance(a, dict):
+            args[i] = soft_schema(**a)
     if kwargs:
-        attributes = ObjectSchema(**kwargs),
+        for k, a in kwargs.items():
+            if isinstance(a, dict):
+                args[k] = soft_schema(**a)
+        attributes = [ObjectSchema(**kwargs)]
     else:
-        attributes = ()
+        attributes = []
     return schema.Schema(schema.And(*(args + attributes)))
 
 
