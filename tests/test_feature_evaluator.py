@@ -1,9 +1,10 @@
 import mock
 from unittest import TestCase
-from feature_bench import evaluator  # Imported like this to help mocking
+
 from schema import And
 
-from feature_bench.feature import Feature, soft_schema
+from featureforge import evaluator  # Imported like this to help mocking
+from featureforge.feature import Feature, soft_schema
 
 
 class DumbFeatureA(Feature):
@@ -148,7 +149,7 @@ class FeatureEvaluatorTests(TestCase):
         ev = evaluator.FeatureEvaluator(features)
         actual_mock = mock.MagicMock()
         actual_mock.transform.return_value = [], {}
-        with mock.patch('feature_bench.evaluator.ActualEvaluator') as actual_new:
+        with mock.patch('featureforge.evaluator.ActualEvaluator') as actual_new:
             actual_new.return_value = actual_mock
             ev.transform(SAMPLES[:])
             actual_new.assert_called_once_with(features)
@@ -182,7 +183,7 @@ class FeatureEvaluatorTests(TestCase):
         # the BrokenFeature is not passed
         actual_mock = mock.MagicMock()
         actual_mock.transform.return_value = [], {}
-        with mock.patch('feature_bench.evaluator.ActualEvaluator') as actual_new:
+        with mock.patch('featureforge.evaluator.ActualEvaluator') as actual_new:
             actual_new.return_value = actual_mock
             ev.transform(SAMPLES[:])
             actual_new.assert_called_once_with(features[:-1])

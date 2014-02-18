@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import unittest
 import random
-from feature_bench.featurevectorizer import FeatureMappingVectorizer
+from featureforge.featurevectorizer import FeatureMappingVectorizer
 
 
 class TestFeatureMappingVectorizer(unittest.TestCase):
