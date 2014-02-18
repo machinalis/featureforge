@@ -30,7 +30,7 @@ def soft_schema(**kwargs):
 def has_nones(data, data_schema):
     """
     Returns True iff data has any none in the places where the schema
-    requires somethign else.
+    requires something else.
 
     Assumptions:
      * not schema.validate(data)
@@ -53,7 +53,7 @@ def has_nones(data, data_schema):
                     if has_nones(data[k], data_schema[k]):
                         return True
             else:
-                # Schema failed because fo missing keys, not because of a None
+                # Schema failed because of missing keys, not because of a None
                 return False
     elif isinstance(data_schema, (list, tuple)):
         or_schema = schema.Or(*data_schema)
