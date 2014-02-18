@@ -114,13 +114,13 @@ class FeatureMappingFlattener(object):
         except SchemaError as e:
             raise ValueError(*e.args)
 
-    def _iter_valid(self, X, schema, validator):
+    def _iter_valid(self, X):
         for fdict in X:
             for key in fdict:
-                if key not in schema:
+                if key not in self.schema:
                     raise ValueError("Extra key {!r} not seen "
                                      "previously".format(key))
-            yield validator.validate(fdict)
+            yield self.validator.validate(fdict)
 
     def _fit(self, X):
         try:
@@ -146,25 +146,25 @@ class FeatureMappingFlattener(object):
                     indexes[(name, i)] = len(indexes)
                     reverse.append((name, i))
             schema[name] = type_
-        validator = Schema(schema)
+        self.schema = schema
+        self.validator = Schema(schema)
 
-        for fdict in self._iter_valid(X, schema, validator):
+        for fdict in self._iter_valid(X):
             for name, data in fdict.iteritems():
                 if isinstance(data, basestring):
                     key = (name, data)
                     if key not in indexes:
                         indexes[key] = len(indexes)
                         reverse.append(key)
-
+        self.indexes = indexes
         logger.info("Finished flattener.fit id=%d", id(X))
-        self.schema, self.validator, self.indexes = schema, validator, indexes
         return self
 
     def _transform(self, X):
         logger.info("Starting flattener.transform, id=%d", id(X))
         matrix = []
 
-        for i, fdict in enumerate(self._iter_valid(X, self.schema, self.validator)):
+        for i, fdict in enumerate(self._iter_valid(X)):
             vector = numpy.zeros(len(self.indexes), dtype=float)
             for name, data in fdict.iteritems():
                 if isinstance(data, float):
