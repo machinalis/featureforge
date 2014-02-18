@@ -53,8 +53,8 @@ class FeatureMappingVectorizer(object):
     """
     This class maps feature dicts into numpy arrays.
     Strictly speaking, maps iterables of feature dicts into bidimensional
-    numpy arrays such that if the array shape is (N, M) then there was N
-    elements in the iterable and there are M features.
+    numpy arrays such that if the array shape is (N, M) then there were N
+    elements in the iterable and M features.
 
     A feature dict is a python dictionary of the shape:
         {
@@ -91,7 +91,7 @@ class FeatureMappingVectorizer(object):
     fitting.
     """
     def fit(self, X, y=None):  # `y` is to comply with sklearn estimator
-        """X must be a list, sequence or iterable points,
+        """X must be a list, sequence or iterable of points,
         but not a single data point.
         """
         return self._wrapcall(self._fit, X)
