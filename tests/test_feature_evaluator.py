@@ -59,7 +59,8 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         self.ev.features = [caption_feature, DumbFeatureA]
         samples = SAMPLES[:]
         samples.insert(0, {'pk': 33})
-        _, failures = self.ev.transform(samples)
+        self.ev.transform(samples)
+        failures = self.ev.get_training_stats()
         # Caption was excluded from features list
         self.assertNotIn(caption_feature, self.ev.features)
         # Caption was included on the exclusion list
@@ -76,7 +77,8 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         actual_feature = BrokenFeature
         broken_feature = mock.Mock(wraps=actual_feature, spec=actual_feature)
         self.ev.features = [broken_feature, DumbFeatureA]
-        _, failures = self.ev.transform(SAMPLES[:])
+        self.ev.transform(SAMPLES[:])
+        failures = self.ev.get_training_stats()
         # Feature was excluded from features list
         self.assertNotIn(broken_feature, self.ev.features)
         # Feature was included on the exclusion list
@@ -98,15 +100,15 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         samples = SAMPLES[:]
         nocaption = {'nocaption': u'this sample has no caption'}
         samples.append(nocaption)
-        result, _ = self.ev.transform(samples)
+        result = self.ev.transform(samples)
         self.assertTrue(len(result) < len(samples))
         self.assertNotIn(nocaption, [r['EntireSampleFeature'] for r in result])
 
     def test_excluded_samples_are_reported_on_stats(self):
         self.ev.FEATURE_STRICT_UNTIL = 0
         self.ev.features = [CaptionFeature]
-        result, stats = self.ev.transform([{'pk': 123}])
-        self.assertIn(123, stats['discarded_samples'])
+        self.ev.transform([{'pk': 123}])
+        self.assertIn(123, self.ev.get_training_stats()['discarded_samples'])
 
     def test_if_a_feature_is_excluded_all_results_doesnt_include_it(self):
         # This means: if a Feature evaluated fine for some samples until it was
@@ -116,7 +118,7 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         self.ev.FEATURE_STRICT_UNTIL = 0
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
         self.ev.features = [CaptionFeature, DumbFeatureA]
-        result, _ = self.ev.transform(SAMPLES + [{'nocaption': u'tada!'}])
+        result = self.ev.transform(SAMPLES + [{'nocaption': u'tada!'}])
         # Check that there are results. Otherwise, next loop is dumb
         self.assertTrue(result)
         for r in result:
@@ -128,7 +130,7 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         samples = SAMPLES[:]
         nocaption = {'nocaption': u'this sample has no caption'}
         samples.append(nocaption)
-        result, _ = self.ev.transform(samples)
+        result = self.ev.transform(samples)
         self.assertEqual(len(samples), len(result))
         self.assertIn(nocaption, [r['EntireSampleFeature'] for r in result])
 
@@ -145,7 +147,7 @@ class FeatureEvaluatorTests(TestCase):
         features = [DumbFeatureA, EntireSampleFeature]
         ev = evaluator.FeatureEvaluator(features)
         actual_mock = mock.MagicMock()
-        actual_mock.transform.return_value = [], {}
+        actual_mock.transform.return_value = []
         with mock.patch('featureforge.evaluator.ActualEvaluator') as actual_new:
             actual_new.return_value = actual_mock
             ev.transform(SAMPLES[:])
@@ -163,8 +165,7 @@ class FeatureEvaluatorTests(TestCase):
         ev = evaluator.FeatureEvaluator([])
         with mock.patch.object(evaluator.ActualEvaluator,
                                'transform') as actual_transform_mock:
-            actual_transform_mock.return_value = [], {'discarded_samples': [],
-                                                      'excluded_features': []}
+            actual_transform_mock.return_value = []
             ev.transform(SAMPLES[:])
             ev.transform(SAMPLES[:] + [{}])
             ev.transform(SAMPLES[:] + [{}] + [{}])
@@ -179,7 +180,7 @@ class FeatureEvaluatorTests(TestCase):
         # Let's see that when transforming again from same instance of FeatureEvaluator,
         # the BrokenFeature is not passed
         actual_mock = mock.MagicMock()
-        actual_mock.transform.return_value = [], {}
+        actual_mock.transform.return_value = []
         with mock.patch('featureforge.evaluator.ActualEvaluator') as actual_new:
             actual_new.return_value = actual_mock
             ev.transform(SAMPLES[:])
