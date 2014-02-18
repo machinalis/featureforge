@@ -1,4 +1,5 @@
 from collections import defaultdict
+from copy import copy
 import logging
 
 logger = logging.getLogger(__name__)
@@ -26,11 +27,11 @@ class FeatureEvaluator(object):
 
         logger.info("Starting feature evaluation id=%d", id(X))
         ae = ActualEvaluator(features)
-        result, stats = ae.transform(X, train_mode=is_train)
+        result = ae.transform(X, train_mode=is_train)
         logger.info("Finished feature evaluation id=%d", id(X))
 
         if self.training_stats is None:
-            self.training_stats = stats
+            self.training_stats = ae.get_training_stats()
         return result
 
 
@@ -71,6 +72,14 @@ class ActualEvaluator(object):
             'discarded_samples': [],
             'features': defaultdict(list)
         }
+        self.training_stats = {}
+
+    def get_training_stats(self):
+        # returns a copy of the stats computed during training
+        return {
+            'discarded_samples': copy(self.failure_stats['discarded_samples']),
+            'excluded_features': copy(self.excluded_features)
+        }
 
     def transform(self, X, y=None, train_mode=True):
         result, X_to_retry = self._transform(X, y, train_mode)
@@ -79,9 +88,7 @@ class ActualEvaluator(object):
                         len(X_to_retry))
             result_2, X_to_retry = self._transform(X_to_retry[:], y, train_mode)
             result += result_2
-        stats = {'discarded_samples': self.failure_stats['discarded_samples'],
-                 'excluded_features': self.excluded_features}
-        return result, stats
+        return result
 
     def _transform(self, X, y, train_mode):
         result = []
