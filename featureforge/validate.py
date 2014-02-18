@@ -1,4 +1,4 @@
-from feature_bench import generate
+from featureforge import generate
 import schema
 
 EQ = 'EQ'
@@ -78,7 +78,7 @@ class BaseFeatureFixture(FeatureFixtureCheckMixin):
 ### EXAMPLE ###
 
 if __name__ == "__main__":
-    from feature_bench.feature import Feature, input_schema, output_schema, make_feature
+    from featureforge.feature import Feature, input_schema, output_schema, make_feature
     from schema import Schema, And
     import unittest
 

@@ -6,7 +6,7 @@ import logging
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 
-from feature_bench.utils import DictNormalizer
+from featureforge.utils import DictNormalizer
 
 logger = logging.getLogger(__name__)
 
