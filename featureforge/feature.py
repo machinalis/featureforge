@@ -137,7 +137,7 @@ def make_feature(f):
         raise TypeError("f must be callable")
     result = Feature()
     result._evaluate = f
-    result._name = getattr(f, "_name", f.__name__)
+    result._name = getattr(f, "_feature_name", f.__name__)
     input_schema = getattr(f, "_input_schema", None)
     output_schema = getattr(f, "_output_schema", None)
     if input_schema is not None:
