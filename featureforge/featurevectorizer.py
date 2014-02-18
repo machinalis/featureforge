@@ -124,8 +124,8 @@ class FeatureMappingVectorizer(object):
 
     def _fit(self, X):
         try:
-            first = X[0]
-        except IndexError:
+            first = iter(X).next()
+        except (TypeError, StopIteration):
             raise ValueError("Cannot fit with an empty dataset")
         logger.info("Starting vectorizer.fit id=%d", id(X))
         Schema({Or(str, unicode): Or(int, float, basestring,
