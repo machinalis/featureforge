@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import unittest
 import random
-from featureforge.vectorizer import FeatureMappingVectorizer
+from featureforge.flattener import FeatureMappingFlattener
 
 
-class TestFeatureMappingVectorizer(unittest.TestCase):
+class TestFeatureMappingFlattener(unittest.TestCase):
     def test_fit_empty(self):
-        V = FeatureMappingVectorizer()
+        V = FeatureMappingFlattener()
         self.assertRaises(ValueError, V.fit, [])
 
     def _get_random_dicts(self):
@@ -23,14 +23,14 @@ class TestFeatureMappingVectorizer(unittest.TestCase):
     def test_fit_ok(self):
         random.seed("sofi needs a ladder")
         X = list(self._get_random_dicts())
-        V = FeatureMappingVectorizer()
+        V = FeatureMappingFlattener()
         V.fit(X)
-        V = FeatureMappingVectorizer()
+        V = FeatureMappingFlattener()
         V.fit([next(self._get_random_dicts())])  # Test that works for one dict
 
     def test_fit_bad_values(self):
         random.seed("the alphabet city elite")
-        V = FeatureMappingVectorizer()
+        V = FeatureMappingFlattener()
         self.assertRaises(ValueError, V.fit, [{}])  # keys are strings
         self.assertRaises(ValueError, V.fit, [{1: 1}])  # keys are strings
         self.assertRaises(ValueError, V.fit, [{"a": {}}])
@@ -41,7 +41,7 @@ class TestFeatureMappingVectorizer(unittest.TestCase):
 
     def test_transform_empty(self):
         X = list(self._get_random_dicts())
-        V = FeatureMappingVectorizer()
+        V = FeatureMappingFlattener()
         V.fit(X)
         Z = V.transform([])
         self.assertEqual(Z.shape[0], 0)
@@ -51,7 +51,7 @@ class TestFeatureMappingVectorizer(unittest.TestCase):
         X = list(self._get_random_dicts())
         random.seed("dream on")
         Y = self._get_random_dicts()
-        V = FeatureMappingVectorizer()
+        V = FeatureMappingFlattener()
         V.fit(X)
         Z = V.transform(Y)
         n = 100
@@ -64,7 +64,7 @@ class TestFeatureMappingVectorizer(unittest.TestCase):
     def test_transform_bad_values(self):
         random.seed("king of the streets")
         X = list(self._get_random_dicts())
-        V = FeatureMappingVectorizer()
+        V = FeatureMappingFlattener()
         d = X.pop()
         V.fit(X)
         del d["some integer"]  # Missing key

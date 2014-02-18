@@ -49,7 +49,7 @@ class SequenceValidator(object):
         return str(self)
 
 
-class FeatureMappingVectorizer(object):
+class FeatureMappingFlattener(object):
     """
     This class maps feature dicts into numpy arrays.
     Strictly speaking, maps iterables of feature dicts into bidimensional
@@ -71,7 +71,7 @@ class FeatureMappingVectorizer(object):
           several numbers togheter but otherwise equivalent to giving each
           number in the list a unique key in the dict.
 
-    The vectorizer needs to be _fitted_ to the available feature dictionaries
+    The flattener needs to be _fitted_ to the available feature dictionaries
     before being able to transform feature dicts to numpy arrays. This is
     because during fitting:
         - The dimension of the output array is calculated.
@@ -127,7 +127,7 @@ class FeatureMappingVectorizer(object):
             first = iter(X).next()
         except (TypeError, StopIteration):
             raise ValueError("Cannot fit with an empty dataset")
-        logger.info("Starting vectorizer.fit id=%d", id(X))
+        logger.info("Starting flattener.fit id=%d", id(X))
         Schema({Or(str, unicode): Or(int, float, basestring,
                                      SequenceValidator())}).validate(first)
         indexes = {}
@@ -156,12 +156,12 @@ class FeatureMappingVectorizer(object):
                         indexes[key] = len(indexes)
                         reverse.append(key)
 
-        logger.info("Finished vectorizer.fit id=%d", id(X))
+        logger.info("Finished flattener.fit id=%d", id(X))
         self.schema, self.validator, self.indexes = schema, validator, indexes
         return self
 
     def _transform(self, X):
-        logger.info("Starting vectorizer.transform, id=%d", id(X))
+        logger.info("Starting flattener.transform, id=%d", id(X))
         matrix = []
 
         for i, fdict in enumerate(self._iter_valid(X, self.schema, self.validator)):
@@ -184,6 +184,6 @@ class FeatureMappingVectorizer(object):
         if not matrix:
             return numpy.zeros((0, len(self.indexes)))
         result = numpy.concatenate(matrix)
-        logger.info("Finished vectorizer.transform, id=%d", id(X))
+        logger.info("Finished flattener.transform, id=%d", id(X))
         logger.info("Matrix has size %sx%s" % result.shape)
         return result
