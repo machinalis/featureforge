@@ -78,16 +78,14 @@ class BaseFeatureFixture(FeatureFixtureCheckMixin):
 ### EXAMPLE ###
 
 if __name__ == "__main__":
-    from feature_bench.feature import Feature
+    from feature_bench.feature import Feature, input_schema, output_schema, make_feature
     from schema import Schema, And
     import unittest
 
-    class Length(Feature):
-        input_schema = Schema(str)
-        output_schema = And(int, lambda n: n >= 0)
-
-        def _evaluate(self, data_point):
-            return len(data_point)
+    @input_schema(str)
+    @output_schema(int, lambda n: n >= 0)
+    def length(data_point):
+        return len(data_point)
 
     class TestLength(unittest.TestCase, FeatureFixtureCheckMixin):
 
@@ -98,9 +96,9 @@ if __name__ == "__main__":
                 test_in=('hello', IN, (5, 6, 1)),
                 test_raise=(None, RAISES, ValueError),
             )
-            self.assert_feature_passes_fixture(Length(), fixture)
+            self.assert_feature_passes_fixture(make_feature(length), fixture)
 
         def test_fuzz(self):
-            self.assert_passes_fuzz(Length())
+            self.assert_passes_fuzz(make_feature(length))
 
     unittest.main()
