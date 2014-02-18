@@ -3,7 +3,7 @@ import ming
 import mock
 import unittest
 
-from feature_bench.stats_manager import StatsManager
+from featureforge.stats_manager import StatsManager
 
 
 class StatsManagerTests(unittest.TestCase):
@@ -41,7 +41,7 @@ class StatsManagerTests(unittest.TestCase):
     def test_booking_can_be_stealed_if_time_pass(self):
         config = {'something': 'nice'}
         ticket = self.SM.book_if_available(config)
-        with mock.patch('feature_bench.stats_manager.datetime') as mock_datetime:
+        with mock.patch('featureforge.stats_manager.datetime') as mock_datetime:
             time_limit = datetime.now() + self.SM.booking_delta
             mock_datetime.now.return_value = time_limit - timedelta(seconds=1)
             mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
@@ -75,7 +75,7 @@ class StatsManagerTests(unittest.TestCase):
         config = {'something': 'nice'}
         ticket = self.SM.book_if_available(config)
         self.SM.store_results(ticket, {})
-        with mock.patch('feature_bench.stats_manager.datetime') as mock_datetime:
+        with mock.patch('featureforge.stats_manager.datetime') as mock_datetime:
             mock_datetime.now.return_value = (datetime.now() + self.SM.booking_delta +
                                               timedelta(seconds=999))
             ticket_again = self.SM.book_if_available(config)
