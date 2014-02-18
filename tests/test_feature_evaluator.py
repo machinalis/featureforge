@@ -4,41 +4,32 @@ from unittest import TestCase
 from schema import And
 
 from featureforge import evaluator  # Imported like this to help mocking
-from featureforge.feature import Feature, soft_schema
+from featureforge.feature import make_feature, input_schema, output_schema
+
+@make_feature
+@input_schema(dict)
+@output_schema(unicode)
+def DumbFeatureA(data_point):
+    return u'a'
+
+@make_feature
+@input_schema(dict)
+@output_schema(object)
+def EntireSampleFeature(data_point):
+    return data_point
+
+@make_feature
+@input_schema({'caption': unicode})
+@output_schema(unicode)
+def CaptionFeature(data_point):
+    return data_point['caption']
 
 
-class DumbFeatureA(Feature):
-    # Never Fails. It accepts any data_point as valid, and always return u'a'
-    input_schema = soft_schema()
-    output_schema = And(unicode)
-    default = u'unknown'
-
-    def _evaluate(self, data_point):
-        return u'a'
-
-
-class EntireSampleFeature(Feature):
-    # Artifact for allowing distinguishing is a sample was excluded
-    input_schema = soft_schema()
-    output_schema = And(object)
-    default = {}
-
-    def _evaluate(self, data_point):
-        return data_point
-
-
-class CaptionFeature(Feature):
-    input_schema = soft_schema(caption=unicode)
-    output_schema = And(unicode)
-    default = u'unknown'
-
-    def _evaluate(self, data_point):
-        return data_point['caption']
-
-
-class BrokenFeature(CaptionFeature):
-    def _evaluate(self, data_point):
-        raise RuntimeError()
+@make_feature
+@input_schema({'caption': unicode})
+@output_schema(unicode)
+def BrokenFeature(data_point):
+    raise RuntimeError()
 
 
 SAMPLES = [
@@ -52,17 +43,17 @@ SAMPLES = [
 
 class ActualEvaluatorFailureToleranceTests(TestCase):
     def setUp(self):
-        features = [CaptionFeature(), DumbFeatureA()]
+        features = [CaptionFeature, DumbFeatureA]
         self.ev = evaluator.ActualEvaluator(features[:])
 
     def test_feature_is_excluded_if_fails_on_firts_M_samples(self):
         # We'll use 2 as M
         self.ev.FEATURE_STRICT_UNTIL = 2
         # The caption-feature needs "caption" on data-point
-        actual_feature = CaptionFeature()
+        actual_feature = CaptionFeature
         caption_feature = mock.Mock(wraps=actual_feature,
                                     spec=actual_feature)
-        self.ev.features = [caption_feature, DumbFeatureA()]
+        self.ev.features = [caption_feature, DumbFeatureA]
         samples = SAMPLES[:]
         samples.insert(0, {'pk': 33})
         _, failures = self.ev.transform(samples)
@@ -79,9 +70,9 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         self.ev.FEATURE_STRICT_UNTIL = 0
         # and now make sure that a feature can fail up to 2 times (K on test name)
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 2
-        actual_feature = BrokenFeature()
+        actual_feature = BrokenFeature
         broken_feature = mock.Mock(wraps=actual_feature, spec=actual_feature)
-        self.ev.features = [broken_feature, DumbFeatureA()]
+        self.ev.features = [broken_feature, DumbFeatureA]
         _, failures = self.ev.transform(SAMPLES[:])
         # Feature was excluded from features list
         self.assertNotIn(broken_feature, self.ev.features)
@@ -93,13 +84,13 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
 
     def test_if_no_more_features_then_blows_up(self):
         self.ev.FEATURE_STRICT_UNTIL = 2
-        self.ev.features = [BrokenFeature()]
+        self.ev.features = [BrokenFeature]
         self.assertRaises(self.ev.NoFeaturesLeftError, self.ev.transform, SAMPLES[:])
 
     def test_sample_is_excluded_if_any_feature_fails_when_evaluating_it(self):
         self.ev.FEATURE_STRICT_UNTIL = 0
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = len(SAMPLES) + 1  # dont exclude
-        self.ev.features = [CaptionFeature(), EntireSampleFeature()]
+        self.ev.features = [CaptionFeature, EntireSampleFeature]
         samples = SAMPLES[:]
         nocaption = {'nocaption': u'this sample has no caption'}
         samples.append(nocaption)
@@ -109,7 +100,7 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
 
     def test_excluded_samples_are_reported_on_stats(self):
         self.ev.FEATURE_STRICT_UNTIL = 0
-        self.ev.features = [CaptionFeature()]
+        self.ev.features = [CaptionFeature]
         result, stats = self.ev.transform([{'pk': 123}])
         self.assertIn(123, stats['discarded_samples'])
 
@@ -119,7 +110,7 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         # for which this feature was evaluated, are now striped out of those evaluations
         self.ev.FEATURE_STRICT_UNTIL = 0
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
-        self.ev.features = [CaptionFeature(), DumbFeatureA()]
+        self.ev.features = [CaptionFeature, DumbFeatureA]
         result, _ = self.ev.transform(SAMPLES + [{'nocaption': u'tada!'}])
         self.assertTrue(result)  # Ie, there are results. Otherwise, next assert is dumb
         for r in result:
@@ -127,7 +118,7 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
 
     def test_when_a_feature_is_excluded_a_discarded_sample_is_re_considered(self):
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
-        self.ev.features = [CaptionFeature(), DumbFeatureA(), EntireSampleFeature()]
+        self.ev.features = [CaptionFeature, DumbFeatureA, EntireSampleFeature]
         samples = SAMPLES[:]
         nocaption = {'nocaption': u'this sample has no caption'}
         samples.append(nocaption)
@@ -137,7 +128,7 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
 
     def test_if_not_on_train_mode_errors_are_raised(self):
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
-        self.ev.features = [BrokenFeature(), DumbFeatureA()]
+        self.ev.features = [BrokenFeature, DumbFeatureA]
         self.assertRaises(RuntimeError, self.ev.transform,
                           SAMPLES[:], train_mode=False)
 
@@ -145,7 +136,7 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
 class FeatureEvaluatorTests(TestCase):
 
     def test_when_transforming_instantiates_ActualEvaluator_with_same_features(self):
-        features = [DumbFeatureA(), EntireSampleFeature()]
+        features = [DumbFeatureA, EntireSampleFeature]
         ev = evaluator.FeatureEvaluator(features)
         actual_mock = mock.MagicMock()
         actual_mock.transform.return_value = [], {}
@@ -176,7 +167,7 @@ class FeatureEvaluatorTests(TestCase):
                 self.assertEqual(call[1], {'train_mode': False})
 
     def test_if_on_training_a_feature_failed_on_prediction_that_feature_is_excluded(self):
-        features = [DumbFeatureA(), BrokenFeature()]
+        features = [DumbFeatureA, BrokenFeature]
         ev = evaluator.FeatureEvaluator(features)
         ev.transform(SAMPLES[:])
         # Let's see that when transforming again from same instance of FeatureEvaluator,
