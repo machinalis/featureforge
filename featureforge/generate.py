@@ -103,7 +103,7 @@ def _mutate_insert(seq):
     if seq:
         i = random.randrange(len(seq))
         # duplicate i-th element
-        return seq[:i] + seq[i:i+1] + seq[i:]
+        return seq[:i] + seq[i:i + 1] + seq[i:]
     else:
         return type(seq)([None])
 
@@ -112,7 +112,7 @@ def _mutate_delete(seq):
     if seq:
         i = random.randrange(len(seq))
         # duplicate i-th element
-        return seq[:i] + seq[i+1:]
+        return seq[:i] + seq[i + 1:]
     else:
         return seq
 
@@ -121,41 +121,41 @@ def _mutate_modify(seq):
     if seq:
         i = random.randrange(len(seq))
         # duplicate i-th element
-        return seq[:i] + type(seq)([_mutate(seq[i])]) + seq[i+1:]
+        return seq[:i] + type(seq)([_mutate(seq[i])]) + seq[i + 1:]
     else:
         return seq
 
 
 def _mutate_swap(seq):
     if len(seq) >= 2:
-        i = random.randrange(len(seq)-1)
+        i = random.randrange(len(seq) - 1)
         # duplicate i-th element
-        return seq[:i] + seq[i+1:i-1:-1] + seq[i+2:]
+        return seq[:i] + seq[i + 1:i - 1:-1] + seq[i + 2:]
     else:
         return seq
 
 MUTATORS = {
     float: [
-        lambda i: i+1,
-        lambda i: i-1,
+        lambda i: i + 1,
+        lambda i: i - 1,
         lambda i: -i,
-        lambda i: i+1e-10,
-        lambda i: i-1e-10,
+        lambda i: i + 1e-10,
+        lambda i: i - 1e-10,
         str,
         int,
     ],
     int: [
-        lambda i: i+1,
-        lambda i: i-1,
+        lambda i: i + 1,
+        lambda i: i - 1,
         lambda i: -i,
         str,
         float,
     ],
     str: [
         lambda i: i.upper(),
-        lambda i: i*2,
-        lambda i: ' '+i,
-        lambda i: i+' ',
+        lambda i: i * 2,
+        lambda i: ' ' + i,
+        lambda i: i + ' ',
         lambda i: ''
     ],
     None: [

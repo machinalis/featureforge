@@ -78,7 +78,7 @@ class BaseFeatureFixture(FeatureFixtureCheckMixin):
 ### EXAMPLE ###
 
 if __name__ == "__main__":
-    from featureforge.feature import Feature, input_schema, output_schema, make_feature
+    from featureforge.feature import input_schema, output_schema, make_feature
     from schema import Schema, And
     import unittest
 

@@ -30,7 +30,7 @@ def soft_schema(**kwargs):
 def has_nones(data, data_schema):
     """
     Returns True iff data has any none in the places where the schema
-    requires somethign else.
+    requires something else.
 
     Assumptions:
      * not schema.validate(data)
@@ -53,7 +53,7 @@ def has_nones(data, data_schema):
                     if has_nones(data[k], data_schema[k]):
                         return True
             else:
-                # Schema failed because fo missing keys, not because of a None
+                # Schema failed because of missing keys, not because of a None
                 return False
     elif isinstance(data_schema, (list, tuple)):
         or_schema = schema.Or(*data_schema)
@@ -137,7 +137,7 @@ def make_feature(f):
         raise TypeError("f must be callable")
     result = Feature()
     result._evaluate = f
-    result._name = getattr(f, "_name", f.__name__)
+    result._name = getattr(f, "_feature_name", f.__name__)
     input_schema = getattr(f, "_input_schema", None)
     output_schema = getattr(f, "_output_schema", None)
     if input_schema is not None:
@@ -148,10 +148,17 @@ def make_feature(f):
 
 
 def _build_schema(*args, **kwargs):
+    args = list(args)
+    for i, a in enumerate(args):
+        if isinstance(a, dict):
+            args[i] = soft_schema(**a)
     if kwargs:
-        attributes = ObjectSchema(**kwargs),
+        for k, a in kwargs.items():
+            if isinstance(a, dict):
+                args[k] = soft_schema(**a)
+        attributes = [ObjectSchema(**kwargs)]
     else:
-        attributes = ()
+        attributes = []
     return schema.Schema(schema.And(*(args + attributes)))
 
 

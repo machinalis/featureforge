@@ -39,8 +39,8 @@ class ActualEvaluator(object):
 
     The FeatureEvaluator is more a wrapper that handles what to do differently
     if training or not.
-    This instead, is the implementation of the algorithm needed for computing the
-    pure evaluation of features, with some tolerance to failures.
+    This instead, is the implementation of the algorithm needed for computing
+    the pure evaluation of features, with some tolerance to failures.
     """
 
     # Tolerance to failures:
@@ -101,7 +101,7 @@ class ActualEvaluator(object):
             # some progress logging
             if i and i % LOG_STEP == 0:
                 logger.debug('Features evaluated for %s samples' % i)
-        logger.debug('Features evaluated for all (%s) samples' % (i+1))
+        logger.debug('Features evaluated for all (%s) samples' % (i + 1))
         recommended_retries = self._samples_to_retry
         return result, recommended_retries
 
