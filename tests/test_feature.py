@@ -164,11 +164,12 @@ class TestObjectSchema(TestCase):
         self.assertEqual(repr(s), "ObjectSchema(a='hello', b=<type 'int'>)")
 
     def test_inner_schema(self):
-        s = ObjectSchema(b=schema.And(int, lambda x: x>98, lambda x: x < 100))
+        s = ObjectSchema(
+            b=schema.And(int, lambda x: x > 98, lambda x: x < 100)
+        )
         output = s.validate(self.data)
         # validation preserves identity
         self.assertIs(output, self.data)
         # this schema does not change objects:
         self.assertEqual(output.a, "hello")
         self.assertEqual(output.b, 99)
-

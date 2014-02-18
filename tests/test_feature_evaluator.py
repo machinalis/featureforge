@@ -6,17 +6,20 @@ from schema import And
 from featureforge import evaluator  # Imported like this to help mocking
 from featureforge.feature import make_feature, input_schema, output_schema
 
+
 @make_feature
 @input_schema(dict)
 @output_schema(unicode)
 def DumbFeatureA(data_point):
     return u'a'
 
+
 @make_feature
 @input_schema(dict)
 @output_schema(object)
 def EntireSampleFeature(data_point):
     return data_point
+
 
 @make_feature
 @input_schema({'caption': unicode})
@@ -68,7 +71,7 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
     def test_feature_is_excluded_after_K_fails_no_matter_when(self):
         # We'll make sure strict mode is turned off
         self.ev.FEATURE_STRICT_UNTIL = 0
-        # and now make sure that a feature can fail up to 2 times (K on test name)
+        # now make sure that a feature can fail up to 2 times (K on test name)
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 2
         actual_feature = BrokenFeature
         broken_feature = mock.Mock(wraps=actual_feature, spec=actual_feature)
@@ -85,7 +88,8 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
     def test_if_no_more_features_then_blows_up(self):
         self.ev.FEATURE_STRICT_UNTIL = 2
         self.ev.features = [BrokenFeature]
-        self.assertRaises(self.ev.NoFeaturesLeftError, self.ev.transform, SAMPLES[:])
+        with self.assertRaises(self.ev.NoFeaturesLeftError):
+            self.ev.transform(SAMPLES[:])
 
     def test_sample_is_excluded_if_any_feature_fails_when_evaluating_it(self):
         self.ev.FEATURE_STRICT_UNTIL = 0
@@ -106,17 +110,19 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
 
     def test_if_a_feature_is_excluded_all_results_doesnt_include_it(self):
         # This means: if a Feature evaluated fine for some samples until it was
-        # excluded, once we decided to exclude it, we must make sure that previous samples
-        # for which this feature was evaluated, are now striped out of those evaluations
+        # excluded, once we decided to exclude it, we must make sure that
+        # previous samples for which this feature was evaluated, are now
+        # striped out of those evaluations
         self.ev.FEATURE_STRICT_UNTIL = 0
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
         self.ev.features = [CaptionFeature, DumbFeatureA]
         result, _ = self.ev.transform(SAMPLES + [{'nocaption': u'tada!'}])
-        self.assertTrue(result)  # Ie, there are results. Otherwise, next assert is dumb
+        # Check that there are results. Otherwise, next loop is dumb
+        self.assertTrue(result)
         for r in result:
             self.assertEqual(r.keys(), ['DumbFeatureA'])
 
-    def test_when_a_feature_is_excluded_a_discarded_sample_is_re_considered(self):
+    def test_when_a_feature_is_excluded_a_discarded_sample_is_reconsidered(self):
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
         self.ev.features = [CaptionFeature, DumbFeatureA, EntireSampleFeature]
         samples = SAMPLES[:]
@@ -178,5 +184,3 @@ class FeatureEvaluatorTests(TestCase):
             actual_new.return_value = actual_mock
             ev.transform(SAMPLES[:])
             actual_new.assert_called_once_with(features[:-1])
-
-
