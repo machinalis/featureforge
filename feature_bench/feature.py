@@ -2,6 +2,7 @@ import functools
 
 import schema
 
+
 def soft_schema(**kwargs):
     """
         soft_schema(k1=schema1, k2=schema2, ...)
@@ -86,7 +87,8 @@ class Feature(object):
         try:
             data_point = self.input_schema.validate(data_point)
         except schema.SchemaError as e:
-            if hasattr(self, 'default') and has_nones(data_point, self.input_schema):
+            if (hasattr(self, 'default') and
+                has_nones(data_point, self.input_schema)):
                 return self.default
             raise self.InputValueError(e)
         result = self._evaluate(data_point)
@@ -98,8 +100,34 @@ class Feature(object):
     def _evaluate(self, data_point):
         return None
 
-# Simple API
 
+# Extensions for schema of other objects
+class ObjectSchema(schema.Schema):
+
+    def __init__(self, **kwargs):
+        self.attrs = kwargs
+
+    def __repr__(self):
+        attributes = ("%s=%s" % (n, repr(s)) for (n, s) in self.attrs.items())
+        return '%s(%s)' % (type(self).__name__, ', '.join(attributes))
+
+    def validate(self, data):
+        for a, s in self.attrs.items():
+            s = schema.Schema(s)
+            try:
+                value = getattr(data, a)
+            except AttributeError:
+                raise schema.SchemaError(" Missing attribute %r" % a, [])
+            try:
+                new_value = s.validate(value)
+            except schema.SchemaError as e:
+                raise schema.SchemaError(
+                    "Invalid value for attribute %r: %s" % (a, e), [])
+            setattr(data, a, new_value)
+        return data
+
+
+# Simple API
 def make_feature(f):
     """
     Given a function f: data point -> feature that computes a feature, upgrade
@@ -120,8 +148,11 @@ def make_feature(f):
 
 
 def _build_schema(*args, **kwargs):
-    assert not kwargs # TODO: support object attributes
-    return schema.And(*args)
+    if kwargs:
+        attributes = ObjectSchema(**kwargs),
+    else:
+        attributes = ()
+    return schema.Schema(schema.And(*(args + attributes)))
 
 
 def input_schema(*args, **kwargs):
@@ -143,4 +174,3 @@ def feature_name(name):
         f._feature_name = name
         return f
     return decorate
-
