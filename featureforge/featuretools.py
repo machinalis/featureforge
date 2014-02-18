@@ -7,7 +7,7 @@ from sklearn.neighbors import KernelDensity
 import numpy
 import pylab
 
-from featureforge.featurevectorizer import FeatureMappingVectorizer
+from featureforge.vectorizer import FeatureMappingVectorizer
 
 
 class NoTrainDataError(Exception):
