@@ -67,13 +67,6 @@ class BaseFeatureFixture(FeatureFixtureCheckMixin):
     def test_fuzz(self):
         self.assert_passes_fuzz(self.feature())
 
-    def test_has_valid_default(self):
-        f = self.feature()
-        self.assertTrue(hasattr(f, 'default'))
-        try:
-            f.output_schema.validate(f.default)
-        except schema.SchemaError:
-            self.fail("Invalid default value according output schema")
 
 ### EXAMPLE ###
 
