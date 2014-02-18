@@ -62,10 +62,10 @@ class BaseFeatureFixture(FeatureFixtureCheckMixin):
     feature = None  # Needs to be defined on subclasses
 
     def test_fixtures(self):
-        self.assert_feature_passes_fixture(self.feature(), self.fixtures)
+        self.assert_feature_passes_fixture(self.feature, self.fixtures)
 
     def test_fuzz(self):
-        self.assert_passes_fuzz(self.feature())
+        self.assert_passes_fuzz(self.feature)
 
 
 ### EXAMPLE ###
@@ -75,11 +75,13 @@ if __name__ == "__main__":
     from schema import Schema, And
     import unittest
 
+    @make_feature
     @input_schema(str)
     @output_schema(int, lambda n: n >= 0)
     def length(data_point):
         return len(data_point)
 
+    # This is an example on how to use assertions directly
     class TestLength(unittest.TestCase, FeatureFixtureCheckMixin):
 
         def test_f(self):
@@ -89,9 +91,18 @@ if __name__ == "__main__":
                 test_in=('hello', IN, (5, 6, 1)),
                 test_raise=(None, RAISES, ValueError),
             )
-            self.assert_feature_passes_fixture(make_feature(length), fixture)
+            self.assert_feature_passes_fixture(length, fixture)
 
         def test_fuzz(self):
-            self.assert_passes_fuzz(make_feature(length))
+            self.assert_passes_fuzz(length)
+
+    class TestLength2(unittest.TestCase, BaseFeatureFixture):
+        feature = length
+        fixtures = dict(
+                test_eq=('hello', EQ, 5),
+                test_approx=('world!', APPROX, 6.00001),
+                test_in=('hello', IN, (5, 6, 1)),
+                test_raise=(None, RAISES, ValueError),
+            )
 
     unittest.main()

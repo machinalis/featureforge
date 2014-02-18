@@ -112,10 +112,8 @@ def _build_schema(*args, **kwargs):
         for k, a in kwargs.items():
             if isinstance(a, dict):
                 args[k] = soft_schema(**a)
-        attributes = [ObjectSchema(**kwargs)]
-    else:
-        attributes = []
-    return schema.Schema(schema.And(*(args + attributes)))
+        args.append(ObjectSchema(**kwargs))
+    return schema.Schema(schema.And(*args))
 
 
 def input_schema(*args, **kwargs):
