@@ -3,7 +3,7 @@ import itertools
 import logging
 import numpy
 
-from schema import Schema, SchemaError, Use, Or
+from schema import Schema, SchemaError, Use
 
 logger = logging.getLogger(__name__)
 
