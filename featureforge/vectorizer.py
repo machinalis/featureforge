@@ -1,5 +1,7 @@
 import logging
+
 from featureforge.evaluator import FeatureEvaluator, TolerantFeatureEvaluator
+from featureforge.feature import make_feature
 from featureforge.flattener import FeatureMappingFlattener
 
 logger = logging.getLogger(__name__)
