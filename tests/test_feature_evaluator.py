@@ -136,8 +136,9 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         nocaption = {'nocaption': u'this sample has no caption'}
         samples.append(nocaption)
         result = self.ev.transform(samples)
-        self.assertTrue(len(result) < len(samples))
-        self.assertNotIn(nocaption, [r['EntireSampleFeature'] for r in result])
+        self.assertTrue(len(list(result)) < len(samples))
+        # EntireSampleFeature is the last, so is the last value per tuple
+        self.assertNotIn(nocaption, [r[-1] for r in result])
 
     def test_excluded_samples_are_reported_on_stats(self):
         self.ev.FEATURE_STRICT_UNTIL = 0
@@ -157,7 +158,8 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         # Check that there are results. Otherwise, next loop is dumb
         self.assertTrue(result)
         for r in result:
-            self.assertEqual(r.keys(), ['DumbFeatureA'])
+            self.assertEqual(len(r), 1)  # only one value per sample
+            self.assertEqual(r[0], 'a')  # Remember that DumbFeatureA returns 'a'
 
     def test_when_a_feature_is_excluded_a_discarded_sample_is_reconsidered(self):
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
@@ -165,9 +167,10 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         samples = SAMPLES[:]
         nocaption = {'nocaption': u'this sample has no caption'}
         samples.append(nocaption)
-        result = self.ev.transform(samples)
+        result = list(self.ev.transform(samples))
         self.assertEqual(len(samples), len(result))
-        self.assertIn(nocaption, [r['EntireSampleFeature'] for r in result])
+        # EntireSampleFeature is the last, so is the last value per tuple
+        self.assertIn(nocaption, [r[-1] for r in result])
 
     def test_if_not_on_train_mode_errors_are_raised(self):
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
