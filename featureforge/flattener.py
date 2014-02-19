@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import collections
+import itertools
 import logging
 import numpy
 
@@ -114,69 +115,76 @@ class FeatureMappingFlattener(object):
         except SchemaError as e:
             raise ValueError(*e.args)
 
-    def _iter_valid(self, X):
-        for fdict in X:
-            for key in fdict:
-                if key not in self.schema:
-                    raise ValueError("Extra key {!r} not seen "
-                                     "previously".format(key))
-            yield self.validator.validate(fdict)
-
     def _fit(self, X):
+        X = iter(X)
         try:
-            first = iter(X).next()
+            first = next(X)
         except (TypeError, StopIteration):
             raise ValueError("Cannot fit with an empty dataset")
-        logger.info("Starting flattener.fit id=%d", id(X))
-        Schema({Or(str, unicode): Or(int, float, basestring,
-                                     SequenceValidator())}).validate(first)
-        indexes = {}
-        reverse = []
-        schema = {}
-        for name, data in first.iteritems():
+        logger.info("Starting flattener.fit")
+        X = itertools.chain([first], X)  # Rebuild original X
+
+        # Check for a tuples of numbers, strings or "sequences".
+        schema = Schema((Or(int, float, basestring, SequenceValidator()), ))
+        schema.validate(first)
+        if not first:
+            raise ValueError("Cannot fit with no empty features")
+
+        # Build validation schema using the first data point
+        self.indexes = {}  # Tuple index to matrix column mapping
+        self.reverse = []  # Matrix column to tuple index mapping
+        self.schema = [None] * len(first)
+        str_tuple_indexes = []
+        for i, data in enumerate(first):
             if isinstance(data, (int, float)):
-                indexes[name] = len(indexes)
-                reverse.append(name)
-                type_ = Use(float)
+                self.indexes[i] = len(self.indexes)
+                self.reverse.append(i)
+                type_ = Use(float)  # ints and floats are all mapped to float
             elif isinstance(data, basestring):
-                type_ = basestring
+                type_ = basestring  # One-hot encoded indexes are added last
+                str_tuple_indexes.append(i)
             else:
                 type_ = SequenceValidator(data)
-                for i in xrange(type_.size):
-                    indexes[(name, i)] = len(indexes)
-                    reverse.append((name, i))
-            schema[name] = type_
-        self.schema = schema
-        self.validator = Schema(schema)
+                for j in xrange(type_.size):
+                    self.indexes[(i, j)] = len(self.indexes)
+                    self.reverse.append((i, j))
+            self.schema[i] = type_
+        assert None not in self.schema
+        self.schema = tuple(self.schema)
+        self.validator = Schema(self.schema)
 
-        for fdict in self._iter_valid(X):
-            for name, data in fdict.iteritems():
-                if isinstance(data, basestring):
-                    key = (name, data)
-                    if key not in indexes:
-                        indexes[key] = len(indexes)
-                        reverse.append(key)
-        self.indexes = indexes
-        logger.info("Finished flattener.fit id=%d", id(X))
+        if str_tuple_indexes:  # Is there anything to one-hot encode ?
+            # See all datapoints looking for one-hot encodeable feature values
+            for datapoint in X:
+                for i in str_tuple_indexes:
+                    data = Schema(basestring).validate(datapoint[i])
+                    key = (i, data)
+                    if key not in self.indexes:
+                        self.indexes[key] = len(self.indexes)
+                        self.reverse.append(key)
+        logger.info("Finished flattener.fit")
+        logger.info("Input tuple size %s, output vector size %s" %
+                     (len(first), len(self.indexes)))
         return self
 
     def _transform(self, X):
-        logger.info("Starting flattener.transform, id=%d", id(X))
+        logger.info("Starting flattener.transform")
         matrix = []
 
-        for i, fdict in enumerate(self._iter_valid(X)):
+        for datapoint in X:
+            datapoint = self.validator.validate(datapoint)
             vector = numpy.zeros(len(self.indexes), dtype=float)
-            for name, data in fdict.iteritems():
+            for i, data in enumerate(datapoint):
                 if isinstance(data, float):
-                    j = self.indexes[name]
+                    j = self.indexes[i]
                     vector[j] = data
                 elif isinstance(data, basestring):
-                    if (name, data) in self.indexes:
-                        j = self.indexes[(name, data)]
+                    if (i, data) in self.indexes:
+                        j = self.indexes[(i, data)]
                         vector[j] = 1.0
                 else:
-                    j = self.indexes[(name, 0)]
-                    assert self.indexes[(name, len(data) - 1)] == \
+                    j = self.indexes[(i, 0)]
+                    assert self.indexes[(i, len(data) - 1)] == \
                            j + len(data) - 1
                     vector[j:j + len(data)] = data
             matrix.append(vector.reshape((1, -1)))
@@ -184,6 +192,6 @@ class FeatureMappingFlattener(object):
         if not matrix:
             return numpy.zeros((0, len(self.indexes)))
         result = numpy.concatenate(matrix)
-        logger.info("Finished flattener.transform, id=%d", id(X))
+        logger.info("Finished flattener.transform")
         logger.info("Matrix has size %sx%s" % result.shape)
         return result
