@@ -30,3 +30,22 @@ class Vectorizer(object):
     def transform(self, X):
         Xt = self.evaluator.transform(X)
         return self.flattener.transform(Xt)
+
+    def column_to_feature(self, i):
+        """
+        Given a column index in the vectorizer's output matrix it returns the
+        feature that originates that column.
+
+        The return value is a tuple (feature, value).
+        `feature` is the feature given in the initialization and `value`
+        depends on the kind of feature that the column represents:
+            - If the feature spawns numbers then `value` is `None` and should
+              be ignored.
+            - If the feature spawns strings then `value` is the string that
+              corresponds to the one-hot encoding of that column.
+            - If the feature spawns an array then `value` is the index within
+              the spawned array that corresponds to that column.
+        """
+        j, value = self.flattener.reverse[i]
+        feature = self.evaluator.alive_features[j]
+        return feature, value
