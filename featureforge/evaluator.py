@@ -9,6 +9,23 @@ LOG_STEP = 500
 
 
 class FeatureEvaluator(object):
+    """Simple feature evaluator"""
+
+    def __init__(self, features):
+        self.features = features
+
+    def fit(self, X, y):
+        return self
+
+    def fit_transform(self, X, y):
+        return self.transform(X)
+
+    def transform(self, X, y=None):
+        for d in X:
+            yield tuple((f(d) for f in self.features))
+
+
+class TolerantFeatureEvaluator(object):
 
     def __init__(self, features):
         self.features = features
@@ -81,16 +98,16 @@ class ActualEvaluator(object):
             'excluded_features': copy(self.excluded_features)
         }
 
-    def transform(self, X, y=None, train_mode=True):
-        result, X_to_retry = self._transform(X, y, train_mode)
+    def transform(self, X, train_mode=True):
+        result, X_to_retry = self._transform(X, train_mode)
         while X_to_retry:
             logger.info('Retrying for %s samples that were originally discarded.' %
                         len(X_to_retry))
-            result_2, X_to_retry = self._transform(X_to_retry[:], y, train_mode)
+            result_2, X_to_retry = self._transform(X_to_retry[:], train_mode)
             result += result_2
         return result
 
-    def _transform(self, X, y, train_mode):
+    def _transform(self, X, train_mode):
         result = []
         self._samples_to_retry = []
         for i, d in enumerate(X):
