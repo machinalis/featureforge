@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import collections
+import itertools
 import logging
 import numpy
 
@@ -49,6 +49,20 @@ class SequenceValidator(object):
         return str(self)
 
 
+class TupleValidator(object):
+    def __init__(self, types_tuple):
+        self.tt = map(Schema, types_tuple)
+        self.N = len(self.tt)
+
+    def validate(self, x):
+        if not isinstance(x, tuple):
+            raise SchemaError("Expecting tuple, got {}".format(type(x)), [])
+        if len(x) != self.N:
+            raise SchemaError("Expecting a tuple of size {}, but got".format(
+                              self.N, len(x)), [])
+        return tuple(schema.validate(y) for y, schema in zip(x, self.tt))
+
+
 class FeatureMappingFlattener(object):
     """
     This class maps feature dicts into numpy arrays.
@@ -90,6 +104,8 @@ class FeatureMappingFlattener(object):
     numpy arrays as long as they comply with the schema inferred during
     fitting.
     """
+    enum_validator = Schema(basestring)
+
     def fit(self, X, y=None):  # `y` is to comply with sklearn estimator
         """X must be a list, sequence or iterable of points,
         but not a single data point.
@@ -103,12 +119,12 @@ class FeatureMappingFlattener(object):
         return self._wrapcall(self._transform, X)
 
     def fit_transform(self, X, y=None):
-        self.fit(X)
-        return self.transform(X)
+        """X must be a list, sequence or iterable points,
+        but not a single data point.
+        """
+        return self._wrapcall(self._fit_transform, X)
 
     def _wrapcall(self, method, X):
-        if not isinstance(X, collections.Iterable):
-            X = [X]
         try:
             return method(X)
         except SchemaError as e:
@@ -122,7 +138,7 @@ class FeatureMappingFlattener(object):
 
     def _fit_first(self, first):
         # Check for a tuples of numbers, strings or "sequences".
-        schema = Schema((Or(int, float, basestring, SequenceValidator()), ))
+        schema = Schema((int, float, basestring, SequenceValidator()))
         schema.validate(first)
         if not first:
             raise ValueError("Cannot fit with no empty features")
@@ -146,11 +162,11 @@ class FeatureMappingFlattener(object):
             self.schema[i] = type_
         assert None not in self.schema
         self.schema = tuple(self.schema)
-        self.validator = Schema(self.schema)
+        self.validator = TupleValidator(self.schema)
 
     def _fit_step(self, datapoint):
         for i in self.str_tuple_indexes:
-            data = Schema(basestring).validate(datapoint[i])
+            data = self.enum_validator.validate(datapoint[i])
             self._add_column(i, data)
 
     def _fit(self, X):
@@ -166,8 +182,10 @@ class FeatureMappingFlattener(object):
 
         if self.str_tuple_indexes:  # Is there anything to one-hot encode ?
             # See all datapoints looking for one-hot encodeable feature values
+            first = self.validator.validate(first)
             self._fit_step(first)
             for datapoint in X:
+                datapoint = self.validator.validate(datapoint)
                 self._fit_step(datapoint)
 
         logger.info("Finished flattener.fit")
@@ -176,7 +194,6 @@ class FeatureMappingFlattener(object):
         return self
 
     def _transform_step(self, datapoint):
-        datapoint = self.validator.validate(datapoint)
         vector = numpy.zeros(len(self.indexes), dtype=float)
         for i, data in enumerate(datapoint):
             if isinstance(data, float):
@@ -198,13 +215,53 @@ class FeatureMappingFlattener(object):
         matrix = []
 
         for datapoint in X:
+            datapoint = self.validator.validate(datapoint)
             vector = self._transform_step(datapoint)
             matrix.append(vector.reshape((1, -1)))
 
         if not matrix:
-            return numpy.zeros((0, len(self.indexes)))
-        result = numpy.concatenate(matrix)
+            result = numpy.zeros((0, len(self.indexes)))
+        else:
+            result = numpy.concatenate(matrix)
 
         logger.info("Finished flattener.transform")
+        logger.info("Matrix has size %sx%s" % result.shape)
+        return result
+
+    def _fit_transform(self, X):
+        X = iter(X)
+        try:
+            first = next(X)
+        except (TypeError, StopIteration):
+            raise ValueError("Cannot fit with an empty dataset")
+        logger.info("Starting flattener.fit_transform")
+
+        self._fit_first(first)
+
+        # Rebuild original X
+        X = itertools.chain([first], X)
+
+        matrix = []
+        for datapoint in X:
+            datapoint = self.validator.validate(datapoint)
+            self._fit_step(datapoint)
+            vector = self._transform_step(datapoint)
+            matrix.append(vector.reshape((1, -1)))
+
+        N = len(self.indexes)
+        for i, vector in enumerate(matrix):
+            if len(vector) == N:
+                break
+            # This works because one-hot encoded features go at the end
+            vector = numpy.array(vector)
+            vector.resize((1, N))
+            matrix[i] = vector
+
+        if not matrix:
+            result = numpy.zeros((0, N))
+        else:
+            result = numpy.concatenate(matrix)
+
+        logger.info("Finished flattener.fit_transform")
         logger.info("Matrix has size %sx%s" % result.shape)
         return result
