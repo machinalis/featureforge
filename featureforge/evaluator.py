@@ -1,4 +1,5 @@
 from collections import defaultdict
+from copy import copy
 import logging
 
 logger = logging.getLogger(__name__)
@@ -8,6 +9,25 @@ LOG_STEP = 500
 
 
 class FeatureEvaluator(object):
+    """Simple feature evaluator"""
+
+    def __init__(self, features):
+        self.features = features
+
+    def fit(self, X, y=None):
+        self.alive_features = tuple(self.features)
+        return self
+
+    def fit_transform(self, X, y=None):
+        self.fit(X, y)
+        return self.transform(X)
+
+    def transform(self, X, y=None):
+        for d in X:
+            yield tuple((f(d) for f in self.alive_features))
+
+
+class TolerantFeatureEvaluator(object):
 
     def __init__(self, features):
         self.features = features
@@ -26,11 +46,11 @@ class FeatureEvaluator(object):
 
         logger.info("Starting feature evaluation id=%d", id(X))
         ae = ActualEvaluator(features)
-        result, stats = ae.transform(X, train_mode=is_train)
+        result = ae.transform(X, train_mode=is_train)
         logger.info("Finished feature evaluation id=%d", id(X))
 
         if self.training_stats is None:
-            self.training_stats = stats
+            self.training_stats = ae.get_training_stats()
         return result
 
 
@@ -71,19 +91,25 @@ class ActualEvaluator(object):
             'discarded_samples': [],
             'features': defaultdict(list)
         }
+        self.training_stats = {}
 
-    def transform(self, X, y=None, train_mode=True):
-        result, X_to_retry = self._transform(X, y, train_mode)
+    def get_training_stats(self):
+        # returns a copy of the stats computed during training
+        return {
+            'discarded_samples': copy(self.failure_stats['discarded_samples']),
+            'excluded_features': copy(self.excluded_features)
+        }
+
+    def transform(self, X, train_mode=True):
+        result, X_to_retry = self._transform(X, train_mode)
         while X_to_retry:
             logger.info('Retrying for %s samples that were originally discarded.' %
                         len(X_to_retry))
-            result_2, X_to_retry = self._transform(X_to_retry[:], y, train_mode)
+            result_2, X_to_retry = self._transform(X_to_retry[:], train_mode)
             result += result_2
-        stats = {'discarded_samples': self.failure_stats['discarded_samples'],
-                 'excluded_features': self.excluded_features}
-        return result, stats
+        return result
 
-    def _transform(self, X, y, train_mode):
+    def _transform(self, X, train_mode):
         result = []
         self._samples_to_retry = []
         for i, d in enumerate(X):

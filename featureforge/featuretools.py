@@ -7,7 +7,7 @@ from sklearn.neighbors import KernelDensity
 import numpy
 import pylab
 
-from featureforge.featurevectorizer import FeatureMappingVectorizer
+from featureforge.flattener import FeatureMappingFlattener
 
 
 class NoTrainDataError(Exception):
@@ -38,8 +38,8 @@ def get_feature_stats(feature, corpus, sample_size=1000):
     name = feature.name
     xs, ctr, misses = _build_train(train, feature)
 
-    vectorizer = FeatureMappingVectorizer()
-    ys = vectorizer.fit_transform(xs)
+    flattener = FeatureMappingFlattener()
+    ys = flattener.fit_transform(xs)
 
     if isinstance(xs[0][name], (int, float)):
         d = {

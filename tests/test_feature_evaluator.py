@@ -1,7 +1,6 @@
 import mock
+import types
 from unittest import TestCase
-
-from schema import And
 
 from featureforge import evaluator  # Imported like this to help mocking
 from featureforge.feature import make_feature, input_schema, output_schema
@@ -44,6 +43,42 @@ SAMPLES = [
 ]
 
 
+class SimpleEvaluatorTests(TestCase):
+
+    def test_fit_creates_alive_features_tuple(self):
+        ev = evaluator.FeatureEvaluator([DumbFeatureA])
+        self.assertFalse(hasattr(ev, 'alive_features'))
+        ev.fit([])
+        self.assertTrue(hasattr(ev, 'alive_features'))
+
+    def test_returns_generator(self):
+        ev = evaluator.FeatureEvaluator([DumbFeatureA])
+        ev.fit([])
+        Xt = ev.transform([])
+        self.assertIsInstance(Xt, types.GeneratorType)
+
+    def test_returns_tuples_of_features_length(self):
+        features = [DumbFeatureA, DumbFeatureA]
+        ev = evaluator.FeatureEvaluator(features)
+        ev.fit(SAMPLES)
+        Xt = ev.transform(SAMPLES)
+        x = Xt.next()
+        self.assertIsInstance(x, tuple)
+        self.assertEqual(len(x), len(features))
+
+    def test_returns_as_many_tuples_as_samples(self):
+        ev = evaluator.FeatureEvaluator([DumbFeatureA])
+        ev.fit(SAMPLES)
+        Xt = ev.transform(SAMPLES)
+        self.assertEqual(len(list(Xt)), len(SAMPLES))
+
+    def test_fit_transform_does_both_things(self):
+        ev = evaluator.FeatureEvaluator([DumbFeatureA])
+        Xt_1 = ev.fit_transform(SAMPLES)
+        Xt_2 = ev.transform(SAMPLES)
+        self.assertListEqual(list(Xt_1), list(Xt_2))
+
+
 class ActualEvaluatorFailureToleranceTests(TestCase):
     def setUp(self):
         features = [CaptionFeature, DumbFeatureA]
@@ -59,7 +94,8 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         self.ev.features = [caption_feature, DumbFeatureA]
         samples = SAMPLES[:]
         samples.insert(0, {'pk': 33})
-        _, failures = self.ev.transform(samples)
+        self.ev.transform(samples)
+        failures = self.ev.get_training_stats()
         # Caption was excluded from features list
         self.assertNotIn(caption_feature, self.ev.features)
         # Caption was included on the exclusion list
@@ -76,7 +112,8 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         actual_feature = BrokenFeature
         broken_feature = mock.Mock(wraps=actual_feature, spec=actual_feature)
         self.ev.features = [broken_feature, DumbFeatureA]
-        _, failures = self.ev.transform(SAMPLES[:])
+        self.ev.transform(SAMPLES[:])
+        failures = self.ev.get_training_stats()
         # Feature was excluded from features list
         self.assertNotIn(broken_feature, self.ev.features)
         # Feature was included on the exclusion list
@@ -98,15 +135,15 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         samples = SAMPLES[:]
         nocaption = {'nocaption': u'this sample has no caption'}
         samples.append(nocaption)
-        result, _ = self.ev.transform(samples)
+        result = self.ev.transform(samples)
         self.assertTrue(len(result) < len(samples))
         self.assertNotIn(nocaption, [r['EntireSampleFeature'] for r in result])
 
     def test_excluded_samples_are_reported_on_stats(self):
         self.ev.FEATURE_STRICT_UNTIL = 0
         self.ev.features = [CaptionFeature]
-        result, stats = self.ev.transform([{'pk': 123}])
-        self.assertIn(123, stats['discarded_samples'])
+        self.ev.transform([{'pk': 123}])
+        self.assertIn(123, self.ev.get_training_stats()['discarded_samples'])
 
     def test_if_a_feature_is_excluded_all_results_doesnt_include_it(self):
         # This means: if a Feature evaluated fine for some samples until it was
@@ -116,7 +153,7 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         self.ev.FEATURE_STRICT_UNTIL = 0
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
         self.ev.features = [CaptionFeature, DumbFeatureA]
-        result, _ = self.ev.transform(SAMPLES + [{'nocaption': u'tada!'}])
+        result = self.ev.transform(SAMPLES + [{'nocaption': u'tada!'}])
         # Check that there are results. Otherwise, next loop is dumb
         self.assertTrue(result)
         for r in result:
@@ -128,7 +165,7 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         samples = SAMPLES[:]
         nocaption = {'nocaption': u'this sample has no caption'}
         samples.append(nocaption)
-        result, _ = self.ev.transform(samples)
+        result = self.ev.transform(samples)
         self.assertEqual(len(samples), len(result))
         self.assertIn(nocaption, [r['EntireSampleFeature'] for r in result])
 
@@ -139,20 +176,20 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
                           SAMPLES[:], train_mode=False)
 
 
-class FeatureEvaluatorTests(TestCase):
+class TolerantFeatureEvaluatorTests(TestCase):
 
     def test_when_transforming_instantiates_ActualEvaluator_with_same_features(self):
         features = [DumbFeatureA, EntireSampleFeature]
-        ev = evaluator.FeatureEvaluator(features)
+        ev = evaluator.TolerantFeatureEvaluator(features)
         actual_mock = mock.MagicMock()
-        actual_mock.transform.return_value = [], {}
+        actual_mock.transform.return_value = []
         with mock.patch('featureforge.evaluator.ActualEvaluator') as actual_new:
             actual_new.return_value = actual_mock
             ev.transform(SAMPLES[:])
             actual_new.assert_called_once_with(features)
 
     def test_when_transforming_run_ActualEvaluator(self):
-        ev = evaluator.FeatureEvaluator([])
+        ev = evaluator.TolerantFeatureEvaluator([])
         with mock.patch.object(evaluator.ActualEvaluator,
                                'transform') as actual_transform_mock:
             actual_transform_mock.return_value = [], {}
@@ -160,11 +197,10 @@ class FeatureEvaluatorTests(TestCase):
             actual_transform_mock.assert_called_once_with(SAMPLES, train_mode=True)
 
     def test_second_and_following_calls_for_same_Evaluator_arent_train(self):
-        ev = evaluator.FeatureEvaluator([])
+        ev = evaluator.TolerantFeatureEvaluator([])
         with mock.patch.object(evaluator.ActualEvaluator,
                                'transform') as actual_transform_mock:
-            actual_transform_mock.return_value = [], {'discarded_samples': [],
-                                                      'excluded_features': []}
+            actual_transform_mock.return_value = []
             ev.transform(SAMPLES[:])
             ev.transform(SAMPLES[:] + [{}])
             ev.transform(SAMPLES[:] + [{}] + [{}])
@@ -174,12 +210,12 @@ class FeatureEvaluatorTests(TestCase):
 
     def test_if_on_training_a_feature_failed_on_prediction_that_feature_is_excluded(self):
         features = [DumbFeatureA, BrokenFeature]
-        ev = evaluator.FeatureEvaluator(features)
+        ev = evaluator.TolerantFeatureEvaluator(features)
         ev.transform(SAMPLES[:])
-        # Let's see that when transforming again from same instance of FeatureEvaluator,
-        # the BrokenFeature is not passed
+        # Let's see that when transforming again from same instance of
+        # TolerantFeatureEvaluator, the BrokenFeature is not passed
         actual_mock = mock.MagicMock()
-        actual_mock.transform.return_value = [], {}
+        actual_mock.transform.return_value = []
         with mock.patch('featureforge.evaluator.ActualEvaluator') as actual_new:
             actual_new.return_value = actual_mock
             ev.transform(SAMPLES[:])
