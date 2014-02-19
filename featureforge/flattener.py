@@ -144,7 +144,7 @@ class FeatureMappingFlattener(object):
         for i, data in enumerate(first):
             if isinstance(data, (int, float)):
                 type_ = Use(float)  # ints and floats are all mapped to float
-                self._add_column(i, FeatureIsNumeric)
+                self._add_column(i, None)
             elif isinstance(data, basestring):
                 type_ = basestring  # One-hot encoded indexes are added last
                 str_tuple_indexes.append(i)
@@ -178,7 +178,7 @@ class FeatureMappingFlattener(object):
             vector = numpy.zeros(len(self.indexes), dtype=float)
             for i, data in enumerate(datapoint):
                 if isinstance(data, float):
-                    j = self.indexes[(i, FeatureIsNumeric)]
+                    j = self.indexes[(i, None)]
                     vector[j] = data
                 elif isinstance(data, basestring):
                     if (i, data) in self.indexes:
@@ -197,9 +197,3 @@ class FeatureMappingFlattener(object):
         logger.info("Finished flattener.transform")
         logger.info("Matrix has size %sx%s" % result.shape)
         return result
-
-
-class FeatureIsNumeric(object):
-    """
-    Dummy class used as singleton to signal that a feature value is numeric.
-    """
