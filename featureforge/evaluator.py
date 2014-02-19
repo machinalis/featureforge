@@ -107,16 +107,16 @@ class ActualEvaluator(object):
                         len(X_to_retry))
             result_2, X_to_retry = self._transform(X_to_retry[:], train_mode)
             result += result_2
-        return result
+        return (tuple(r) for r in result)
 
     def _transform(self, X, train_mode):
         result = []
         self._samples_to_retry = []
         for i, d in enumerate(X):
-            r = {}
+            r = []
             for feature in self.features[:]:
                 try:
-                    r[feature.name] = feature(d)
+                    r.append(feature(d))
                 except Exception, e:
                     self.process_failure(result, e, feature, d, i)
                     if not train_mode:
@@ -142,11 +142,12 @@ class ActualEvaluator(object):
             self.exclude_feature(feature, partial_evaluation)
 
     def exclude_feature(self, feature, partial_evaluation):
+        idx = self.features.index(feature)
         self.features.remove(feature)
         if not self.features:
             raise self.NoFeaturesLeftError()
         self.excluded_features.add(feature)
         for evaluation in partial_evaluation:
-            evaluation.pop(feature.name, None)
+            evaluation.pop(idx)
         discarded_samples = self.failure_stats['features'][feature.name]
         self._samples_to_retry += discarded_samples
