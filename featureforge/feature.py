@@ -86,9 +86,12 @@ def make_feature(f):
     """
     Given a function f: data point -> feature that computes a feature, upgrade
     it to a feature instance.
+    Returns f if f is already a Feature instance
     """
     if not callable(f):
         raise TypeError("f must be callable")
+    if isinstance(f, Feature):
+        return f
     result = Feature()
     result._evaluate = f
     result._name = getattr(f, "_feature_name", f.__name__)
