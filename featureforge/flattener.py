@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import itertools
 import logging
 import numpy
 
@@ -104,7 +103,6 @@ class FeatureMappingFlattener(object):
     numpy arrays as long as they comply with the schema inferred during
     fitting.
     """
-    enum_validator = Schema(basestring)
 
     def fit(self, X, y=None):  # `y` is to comply with sklearn estimator
         """X must be a list, sequence or iterable of points,
@@ -166,8 +164,13 @@ class FeatureMappingFlattener(object):
 
     def _fit_step(self, datapoint):
         for i in self.str_tuple_indexes:
-            data = self.enum_validator.validate(datapoint[i])
-            self._add_column(i, data)
+            self._add_column(i, datapoint[i])
+
+    def _iter_valid(self, X, first=None):
+        if first is not None:
+            yield self.validator.validate(first)
+        for datapoint in X:
+            yield self.validator.validate(datapoint)
 
     def _fit(self, X):
         X = iter(X)
@@ -182,10 +185,7 @@ class FeatureMappingFlattener(object):
 
         if self.str_tuple_indexes:  # Is there anything to one-hot encode ?
             # See all datapoints looking for one-hot encodeable feature values
-            first = self.validator.validate(first)
-            self._fit_step(first)
-            for datapoint in X:
-                datapoint = self.validator.validate(datapoint)
+            for datapoint in self._iter_valid(X, first=first):
                 self._fit_step(datapoint)
 
         logger.info("Finished flattener.fit")
@@ -214,8 +214,7 @@ class FeatureMappingFlattener(object):
         logger.info("Starting flattener.transform")
         matrix = []
 
-        for datapoint in X:
-            datapoint = self.validator.validate(datapoint)
+        for datapoint in self._iter_valid(X):
             vector = self._transform_step(datapoint)
             matrix.append(vector.reshape((1, -1)))
 
@@ -238,12 +237,8 @@ class FeatureMappingFlattener(object):
 
         self._fit_first(first)
 
-        # Rebuild original X
-        X = itertools.chain([first], X)
-
         matrix = []
-        for datapoint in X:
-            datapoint = self.validator.validate(datapoint)
+        for datapoint in self._iter_valid(X, first=first):
             self._fit_step(datapoint)
             vector = self._transform_step(datapoint)
             matrix.append(vector.reshape((1, -1)))
