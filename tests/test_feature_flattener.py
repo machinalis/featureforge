@@ -9,38 +9,36 @@ class TestFeatureMappingFlattener(unittest.TestCase):
         V = FeatureMappingFlattener()
         self.assertRaises(ValueError, V.fit, [])
 
-    def _get_random_dicts(self):
+    def _get_random_tuples(self):
         for _ in xrange(100):
-            d = {}
-            d["some integer"] = random.randint(0, 100)
-            d[u"otherinteger"] = random.randint(-3, 3)
-            d[u"somefłøæŧ"] = random.random() * 10 + 5
-            d[u"j€nµmeæcħeid"] = random.choice([u"pepsi", u"coca", "nafta"])
-            d[u"list"] = [random.randint(0, 3) or random.random()
-                          for _ in xrange(5)]
-            yield d
+            t = (random.randint(0, 100),
+                 random.randint(-3, 3),
+                 random.random() * 10 + 5,
+                 random.choice([u"pepsi", u"coca", "nafta"]),
+                 [random.randint(0, 3) or random.random() for _ in xrange(5)]
+                )
+            yield t
 
     def test_fit_ok(self):
         random.seed("sofi needs a ladder")
-        X = list(self._get_random_dicts())
+        X = list(self._get_random_tuples())
         V = FeatureMappingFlattener()
         V.fit(X)
         V = FeatureMappingFlattener()
-        V.fit([next(self._get_random_dicts())])  # Test that works for one dict
+        V.fit([next(self._get_random_tuples())])  # Test that works for one dict
 
     def test_fit_bad_values(self):
         random.seed("the alphabet city elite")
         V = FeatureMappingFlattener()
-        self.assertRaises(ValueError, V.fit, [{}])  # keys are strings
-        self.assertRaises(ValueError, V.fit, [{1: 1}])  # keys are strings
-        self.assertRaises(ValueError, V.fit, [{"a": {}}])
-        self.assertRaises(ValueError, V.fit, [{"a": []}])
-        self.assertRaises(ValueError, V.fit, [{"a": random}])
-        self.assertRaises(ValueError, V.fit, [{"a": [1, u"a"]}])
-        self.assertRaises(ValueError, V.fit, [{"a": 1}, {"a": "a"}])
+        self.assertRaises(ValueError, V.fit, [tuple()])
+        self.assertRaises(ValueError, V.fit, [({},)])
+        self.assertRaises(ValueError, V.fit, [([],)])
+        self.assertRaises(ValueError, V.fit, [(random,)])
+        self.assertRaises(ValueError, V.fit, [([1, u"a"],)])
+        self.assertRaises(ValueError, V.fit, [("a",), (1,)])
 
     def test_transform_empty(self):
-        X = list(self._get_random_dicts())
+        X = list(self._get_random_tuples())
         V = FeatureMappingFlattener()
         V.fit(X)
         Z = V.transform([])
@@ -48,30 +46,28 @@ class TestFeatureMappingFlattener(unittest.TestCase):
 
     def test_transform_ok(self):
         random.seed("i am the program")
-        X = list(self._get_random_dicts())
+        X = list(self._get_random_tuples())
         random.seed("dream on")
-        Y = self._get_random_dicts()
+        Y = self._get_random_tuples()
         V = FeatureMappingFlattener()
         V.fit(X)
         Z = V.transform(Y)
         n = 100
         m = 3 + 3 + 5  # 3 float, 1 enum, 1 list
         self.assertEqual(Z.shape, (n, m))
-        d = next(self._get_random_dicts())
+        d = next(self._get_random_tuples())
         Z = V.transform([d])  # Test that works for one dict too
         self.assertEqual(Z.shape, (1, m))
 
     def test_transform_bad_values(self):
         random.seed("king of the streets")
-        X = list(self._get_random_dicts())
+        X = list(self._get_random_tuples())
         V = FeatureMappingFlattener()
         d = X.pop()
         V.fit(X)
-        del d["some integer"]  # Missing key
+        dd = tuple(list(d)[:-1])  # Missing value
         self.assertRaises(ValueError, V.transform, d)
-        d["extra"] = 10  # Extra key
+        dd = d + (10, )  # Extra value
         self.assertRaises(ValueError, V.transform, d)
-        d["some integer"] = u"a string"  # Changed type
-        self.assertRaises(ValueError, V.transform, d)
-        d[u"j€nµmeæcħeid"] = "coca"  # Not unicode
+        dd = tuple([u"a string"] + list(d)[1:])  # Changed type
         self.assertRaises(ValueError, V.transform, d)
