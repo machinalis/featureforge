@@ -1,4 +1,5 @@
 import mock
+import types
 from unittest import TestCase
 
 from schema import And
@@ -52,8 +53,23 @@ SAMPLES = [
 
 class SimpleEvaluatorTests(TestCase):
 
-    def test_returns_tuples(self):
-        pass
+    def test_returns_generator(self):
+        ev = evaluator.FeatureEvaluator(DumbFeatureA())
+        Xt = ev.transform([])
+        self.assertIsInstance(Xt, types.GeneratorType)
+
+    def test_returns_tuples_of_features_length(self):
+        features = [DumbFeatureA(), DumbFeatureA()]
+        ev = evaluator.FeatureEvaluator(features)
+        Xt = ev.transform(SAMPLES)
+        x = Xt.next()
+        self.assertIsInstance(x, tuple)
+        self.assertEqual(len(x), len(features))
+
+    def test_returns_as_many_tuples_as_samples(self):
+        ev = evaluator.FeatureEvaluator([DumbFeatureA()])
+        Xt = ev.transform(SAMPLES)
+        self.assertEqual(len(list(Xt)), len(SAMPLES))
 
 
 class ActualEvaluatorFailureToleranceTests(TestCase):
