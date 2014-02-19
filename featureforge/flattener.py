@@ -115,6 +115,12 @@ class FeatureMappingFlattener(object):
         except SchemaError as e:
             raise ValueError(*e.args)
 
+    def _add_column(self, i, value):
+        key = (i, value)
+        if key not in self.indexes:
+            self.indexes[key] = len(self.indexes)
+            self.reverse.append(key)
+
     def _fit(self, X):
         X = iter(X)
         try:
@@ -137,17 +143,15 @@ class FeatureMappingFlattener(object):
         str_tuple_indexes = []
         for i, data in enumerate(first):
             if isinstance(data, (int, float)):
-                self.indexes[i] = len(self.indexes)
-                self.reverse.append(i)
                 type_ = Use(float)  # ints and floats are all mapped to float
+                self._add_column(i, FeatureIsNumeric)
             elif isinstance(data, basestring):
                 type_ = basestring  # One-hot encoded indexes are added last
                 str_tuple_indexes.append(i)
             else:
                 type_ = SequenceValidator(data)
                 for j in xrange(type_.size):
-                    self.indexes[(i, j)] = len(self.indexes)
-                    self.reverse.append((i, j))
+                    self._add_column(i, j)
             self.schema[i] = type_
         assert None not in self.schema
         self.schema = tuple(self.schema)
@@ -158,10 +162,8 @@ class FeatureMappingFlattener(object):
             for datapoint in X:
                 for i in str_tuple_indexes:
                     data = Schema(basestring).validate(datapoint[i])
-                    key = (i, data)
-                    if key not in self.indexes:
-                        self.indexes[key] = len(self.indexes)
-                        self.reverse.append(key)
+                    self._add_column(i, data)
+
         logger.info("Finished flattener.fit")
         logger.info("Input tuple size %s, output vector size %s" %
                      (len(first), len(self.indexes)))
@@ -176,7 +178,7 @@ class FeatureMappingFlattener(object):
             vector = numpy.zeros(len(self.indexes), dtype=float)
             for i, data in enumerate(datapoint):
                 if isinstance(data, float):
-                    j = self.indexes[i]
+                    j = self.indexes[(i, FeatureIsNumeric)]
                     vector[j] = data
                 elif isinstance(data, basestring):
                     if (i, data) in self.indexes:
@@ -195,3 +197,9 @@ class FeatureMappingFlattener(object):
         logger.info("Finished flattener.transform")
         logger.info("Matrix has size %sx%s" % result.shape)
         return result
+
+
+class FeatureIsNumeric(object):
+    """
+    Dummy class used as singleton to signal that a feature value is numeric.
+    """
