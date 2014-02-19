@@ -1,5 +1,3 @@
-import functools
-
 import schema
 
 
