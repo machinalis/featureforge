@@ -14,15 +14,17 @@ class FeatureEvaluator(object):
     def __init__(self, features):
         self.features = features
 
-    def fit(self, X, y):
+    def fit(self, X, y=None):
+        self.alive_features = tuple(self.features)
         return self
 
-    def fit_transform(self, X, y):
+    def fit_transform(self, X, y=None):
+        self.fit(X, y)
         return self.transform(X)
 
     def transform(self, X, y=None):
         for d in X:
-            yield tuple((f(d) for f in self.features))
+            yield tuple((f(d) for f in self.alive_features))
 
 
 class TolerantFeatureEvaluator(object):

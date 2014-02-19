@@ -47,14 +47,22 @@ SAMPLES = [
 
 class SimpleEvaluatorTests(TestCase):
 
+    def test_fit_creates_alive_features_tuple(self):
+        ev = evaluator.FeatureEvaluator([DumbFeatureA()])
+        self.assertFalse(hasattr(ev, 'alive_features'))
+        ev.fit([])
+        self.assertTrue(hasattr(ev, 'alive_features'))
+
     def test_returns_generator(self):
-        ev = evaluator.FeatureEvaluator(DumbFeatureA())
+        ev = evaluator.FeatureEvaluator([DumbFeatureA()])
+        ev.fit([])
         Xt = ev.transform([])
         self.assertIsInstance(Xt, types.GeneratorType)
 
     def test_returns_tuples_of_features_length(self):
         features = [DumbFeatureA(), DumbFeatureA()]
         ev = evaluator.FeatureEvaluator(features)
+        ev.fit(SAMPLES)
         Xt = ev.transform(SAMPLES)
         x = Xt.next()
         self.assertIsInstance(x, tuple)
@@ -62,8 +70,15 @@ class SimpleEvaluatorTests(TestCase):
 
     def test_returns_as_many_tuples_as_samples(self):
         ev = evaluator.FeatureEvaluator([DumbFeatureA()])
+        ev.fit(SAMPLES)
         Xt = ev.transform(SAMPLES)
         self.assertEqual(len(list(Xt)), len(SAMPLES))
+
+    def test_fit_transform_does_both_things(self):
+        ev = evaluator.FeatureEvaluator([DumbFeatureA()])
+        Xt_1 = ev.fit_transform(SAMPLES)
+        Xt_2 = ev.transform(SAMPLES)
+        self.assertListEqual(list(Xt_1), list(Xt_2))
 
 
 class ActualEvaluatorFailureToleranceTests(TestCase):
