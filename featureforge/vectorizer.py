@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 class Vectorizer(object):
 
     def __init__(self, features, tolerant=False):
+        # TODO: Upgrade `features` to `Feature` instances.
         if tolerant:
             self.evaluator = TolerantFeatureEvaluator(features)
         else:
@@ -16,7 +17,7 @@ class Vectorizer(object):
 
     def fit(self, X, y=None):
         Xt = self.evaluator.fit_transform(X, y)
-        self.flattener.fit(Xt)
+        self.flattener.fit(Xt, y)
         return self
 
     def fit_transform(self, X, y):
@@ -24,5 +25,5 @@ class Vectorizer(object):
         return self.flattener.fit_transform(Xt, y)
 
     def transform(self, X):
-        self.evaluator.transform(X)
-        return self.flattener.transform(X)
+        Xt = self.evaluator.transform(X)
+        return self.flattener.transform(Xt)
