@@ -139,6 +139,14 @@ dictionaries), and may not be available if you add complex lambda expressions
 or custom types to your schemas. This might be extended to support custom
 generator of data points in the future.
 
+The fuzzy generator supports: ``int``, ``float``, ``bool``, ``str``, 
+``unicode``, ``datetime``. Also nested combinations of those built with
+``dict`` (with literal string keys), ``list``, ``tuple``, ``set`` and
+``frozenset``. ``schema.Or`` is supported. ``schema.And`` only works if the
+first argument is a type, and the other conditions are "easy" to validate,
+where "easy" means "it is likely to find a valid value after a few hundred
+tries of the random value generator"
+
 It is also possible to extend the class above adding additional test methods,
 just like you do in any `TestCase` subclass.
 
@@ -294,7 +302,7 @@ a feature that always returns positive floats may be specified as::
     @output_schema(float, lambda v: v > 0.0)
 
 and a feature that always returns pairs of numbers which are never (0.0, 0.0)
-can be specified as:
+can be specified as::
 
 
     @output_schema(tuple(float), lambda v: len(v) == 2 and v != (0.0, 0.0))
@@ -349,27 +357,78 @@ it's possible to build a general schema like::
         )
     })
 
-And then use it in all your features as ``@input_scehma(data_schema). However,
+And then use it in all your features as ``@input_schema(data_schema)``. However,
 you'll have an easier time specifying, testing, and modifying your system if
 you specify only what's relevant for each feature; for example::
 
     @input_schema({"subject": str})
     def words_in_subject(...): ...
-    
+
     @input_schema({"sender": {"address": str}, "recipient": {"address": str}})
     def sender and_recipient_in_same_domain(...): ...
-    
 
-[
-* recipes for tuples, objects & namedtuples
-* full syntax, what is usable for testing, 
-]
+input schemas also allow specifying schemas for attributes of objects if your
+data point is some custom object, or something like a ``namedtuple``. If the
+example above had a nested tuple structure, these are the schemas you should
+use::
+
+    @input_schema(subject=str)
+    def words_in_subject(...): ...
+
+    @input_schema(sender=ObjectSchema(address=str), 
+                  recipient=ObjectSchema(address=str))
+    def sender and_recipient_in_same_domain(...): ...
+
+The general rules for ``input_schema`` and ``output_schema`` are:
+
+ * All position arguments are considered as conditions to be satisfied
+ * Dictionaries have a slightly different definition that in the standard
+   schema library; they allow additional string keys besides the ones
+   explicitly specified. This change is valid recursively (i.e., if your
+   schema has dictionaries inside dictionaries, the inner dictionaries also
+   allow additional keys)
+ * You can also use `schema.Schema`, `schema.And`, `schema.Or`, etc.
+   it's recommended (but not required) that you use a type as the first
+   argument of `schema.And`; doing so helps the fuzzy test generator.
+ * keyword arguments are considered schema conditions for the attributes of
+   the data point. You can mix them with positional arguments; all the
+   conditions must hold. Attributes not mentioned in the schema are allowed
+   and ignored
+
 
 Cookbook
 ========
 
-[
-* handling None attributes
-* pickling
-]
+These are a few tips and tricks to solve common issues:
+
+Handling "holes" in your input
+------------------------------
+
+Sometimes your input data has "holes" in it. For example you might have a
+data point for people which is a namedtuple(name, age, address), but you do not
+know the age of everyone so the age field is sometimes an int, and other times
+a ``None``. In that case, you can specify the input schema as::
+
+    @input_schema(age=schema.Or(int, None))
+
+note that your feature code will have to handle the case when the input has a
+None, probably using a ``if data_point.age is None: ...``
+
+Pickling
+--------
+
+You might find useful to pickle an object containing features. This is
+useful while using scikit-learn when you have some classificator or regressor
+which uses the features as a first step in the pipeline and you want to store
+the configuration for future uses
+
+Unfortunately, the python decorator mechanism introduces some problems
+regarding pickling, and even if there is a workaround for some simple cases
+(using `functools.wraps`), we haven't found a good way to pickle features
+defined as decorated functions.
+
+If you need to persist the features, you should stick to the class based
+approach for defining them. It's more verbose, but Feature subclasses should
+be easy to serialize with pickle or a similar tool if you follow the
+recipe for defining them used in this document.
 
