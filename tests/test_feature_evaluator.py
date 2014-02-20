@@ -2,8 +2,7 @@ import mock
 import types
 from unittest import TestCase
 
-from featureforge.evaluator import (ActualEvaluator, FeatureEvaluator,
-                                    TolerantFeatureEvaluator)
+from featureforge.evaluator import FeatureEvaluator, TolerantFeatureEvaluator
 from featureforge.feature import make_feature, input_schema, output_schema
 
 
