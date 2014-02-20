@@ -47,7 +47,7 @@ class TolerantFeatureEvaluator(object):
         self.alive_features = self.features[:]
 
         dataset = X
-        last_sample_idx = -1  # Caution
+        last_sample_idx = -1  # Caution to not work in strict mode when retrying
         while dataset:
             self._samples_to_retry = []
             for i, d in enumerate(dataset, last_sample_idx + 1):
@@ -63,6 +63,39 @@ class TolerantFeatureEvaluator(object):
         self.alive_features = tuple(self.alive_features)
         self.fitted = True
         return self
+
+    def transform(self, X, y=None):
+        for d in X:
+            yield tuple((f(d) for f in self.alive_features))
+
+    def fit_transform(self, X, y=None):
+        self._fit_failure_stats = {
+            'discarded_samples': [],
+            'features': defaultdict(list)
+        }
+        self.alive_features = self.features[:]
+        result = []
+
+        dataset = X
+        last_sample_idx = -1  # Caution to not work in strict mode when retrying
+        while dataset:
+            self._samples_to_retry = []
+            for i, d in enumerate(dataset, last_sample_idx + 1):
+                r = []
+                for feature in self.alive_features[:]:
+                    try:
+                        r.append(feature(d))
+                    except Exception, e:
+                        self.process_failure(result, e, feature, d, i)
+                        break
+                else:
+                    result.append(r)
+            last_sample_idx = i
+            dataset = self._samples_to_retry
+
+        self.alive_features = tuple(self.alive_features)
+        self.fitted = True
+        return result
 
     def process_failure(self, partial_eval, error, feature, dpoint, d_index):
         logger.warning(u'Fail evaluating %s: %s %s' % (feature,
@@ -85,23 +118,6 @@ class TolerantFeatureEvaluator(object):
             evaluation.pop(idx)
         discarded_samples = self._fit_failure_stats['features'][feature]
         self._samples_to_retry += discarded_samples
-
-    def transform(self, X, y=None):
-        features = self.features
-        is_train = True
-        if self.training_stats is not None:
-            is_train = False  # We dont support incremental trainings.
-            to_exclude = self.training_stats['excluded_features']
-            features = [f for f in features if f not in to_exclude]
-
-        logger.info("Starting feature evaluation id=%d", id(X))
-        ae = ActualEvaluator(features)
-        result = ae.transform(X, train_mode=is_train)
-        logger.info("Finished feature evaluation id=%d", id(X))
-
-        if self.training_stats is None:
-            self.training_stats = ae.get_training_stats()
-        return result
 
 
 class XTolerantFeatureEvaluator(object):

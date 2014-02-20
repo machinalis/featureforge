@@ -87,147 +87,158 @@ class SimpleEvaluatorTests(TestCase):
         self.assertListEqual(list(Xt_1), list(Xt_2))
 
 
-class ActualEvaluatorFailureToleranceTests(TestCase):
-    def setUp(self):
-        features = [DescriptionFeature, DumbFeatureA]
-        self.ev = ActualEvaluator(features[:])
+class TolerantFittingCases(object):
+    fit_method_name = ''
+    def apply_fit(self, *args, **kwargs):
+        method = getattr(self.ev, self.fit_method_name)
+        return method(*args, **kwargs)
+
+    def test_once_fitted_says_fitted(self):
+        self.ev = TolerantFeatureEvaluator([DumbFeatureA])
+        self.assertFalse(self.ev.fitted)
+        self.apply_fit([])
+        self.assertTrue(self.ev.fitted)
+
+    def test_fit_creates_alive_features_tuple(self):
+        self.ev = TolerantFeatureEvaluator([DumbFeatureA])
+        self.assertFalse(hasattr(self.ev, 'alive_features'))
+        self.apply_fit([])
+        self.assertTrue(hasattr(self.ev, 'alive_features'))
 
     def test_feature_is_excluded_if_fails_on_firts_M_samples(self):
-        # We'll use 2 as M
-        self.ev.FEATURE_STRICT_UNTIL = 2
         # The description-feature needs "description" on data-point
         actual_feature = DescriptionFeature
         description_feature = mock.Mock(wraps=actual_feature,
-                                    spec=actual_feature)
-        self.ev.features = [description_feature, DumbFeatureA]
+                                        spec=actual_feature)
+        self.ev = TolerantFeatureEvaluator([description_feature, DumbFeatureA])
+        # We'll use 2 as the first M of test title
+        self.ev.FEATURE_STRICT_UNTIL = 2
         samples = SAMPLES[:]
         samples.insert(0, {'pk': 33})
-        self.ev.transform(samples)
-        failures = self.ev.get_training_stats()
+        self.apply_fit(samples)
         # Caption was excluded from features list
-        self.assertNotIn(description_feature, self.ev.features)
-        # Caption was included on the exclusion list
-        self.assertIn(description_feature, failures['excluded_features'])
+        self.assertNotIn(description_feature, self.ev.alive_features)
         # Feature was not called anymore after failing, which occurred with the
         # first sample
         self.assertEqual(description_feature.call_count, 1)
 
     def test_feature_is_excluded_after_K_fails_no_matter_when(self):
+        actual_feature = BrokenFeature
+        broken_feature = mock.Mock(wraps=actual_feature, spec=actual_feature)
+        self.ev = TolerantFeatureEvaluator([broken_feature, DumbFeatureA])
+
         # We'll make sure strict mode is turned off
         self.ev.FEATURE_STRICT_UNTIL = 0
         # now make sure that a feature can fail up to 2 times (K on test name)
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 2
-        actual_feature = BrokenFeature
-        broken_feature = mock.Mock(wraps=actual_feature, spec=actual_feature)
-        self.ev.features = [broken_feature, DumbFeatureA]
-        self.ev.transform(SAMPLES[:])
-        failures = self.ev.get_training_stats()
+        self.apply_fit(SAMPLES[:])
         # Feature was excluded from features list
-        self.assertNotIn(broken_feature, self.ev.features)
-        # Feature was included on the exclusion list
-        self.assertIn(broken_feature, failures['excluded_features'])
+        self.assertNotIn(broken_feature, self.ev.alive_features)
         # Feature was not called anymore after failing K+1 times
         self.assertEqual(broken_feature.call_count,
                          self.ev.FEATURE_MAX_ERRORS_ALLOWED + 1)
 
     def test_if_no_more_features_then_blows_up(self):
+        self.ev = TolerantFeatureEvaluator([BrokenFeature])
         self.ev.FEATURE_STRICT_UNTIL = 2
-        self.ev.features = [BrokenFeature]
         with self.assertRaises(self.ev.NoFeaturesLeftError):
-            self.ev.transform(SAMPLES[:])
+            self.apply_fit(SAMPLES[:])
+
+    def test_alive_features_can_hide_bad_samples(self):
+        # While a Feature is alive, each time he failed, the sample causing the
+        # failure is hidden to the rest of the features, in an attempt to
+        # minimize damage of rare bad samples.
+        self.ev = TolerantFeatureEvaluator([DescriptionFeature, AgeFeature,
+                                            DumbFeatureA])
+        self.ev.FEATURE_STRICT_UNTIL = 0  # No strict mode
+        self.ev.FEATURE_MAX_ERRORS_ALLOWED = 1  # No feature failure tolerated
+        no_age = {'description': u'i have'}
+        bad_sample = {'nothing': u'this sample has no description, not age'}
+        samples = [bad_sample, no_age]
+        # Since the 2nd sample will succeed when evaluated on DescriptionFeature
+        # but fail when evaluated with AgeFeature, we want to check if at the
+        # end the AgeFeature is alive or not. If not, it's because it suffered
+        # 2 failures, so the bad_sample wasn't hidden.
+        self.apply_fit(samples)
+        # Checking the preconditions of our test
+        assert DescriptionFeature in self.ev.alive_features
+        self.assertIn(AgeFeature, self.ev.alive_features)
+
+    def test_when_a_feature_is_excluded_a_discarded_sample_is_reconsidered(self):
+        self.ev = TolerantFeatureEvaluator([DescriptionFeature, AgeFeature,
+                                            DumbFeatureA])
+        self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
+        bad_sample = {'nothing': u'this sample has no description, not age'}
+        samples = [bad_sample]
+        self.apply_fit(samples)
+        self.assertEqual(self.ev.alive_features, (DumbFeatureA, ))
+
+
+class TolerantEvaluatorFitTests(TestCase, TolerantFittingCases):
+    fit_method_name = 'fit'
+
+    def test_returns_itself(self):
+        self.ev = TolerantFeatureEvaluator([DumbFeatureA])
+        self.assertEqual(self.ev.fit([]), self.ev)
+
+
+class TolerantEvaluatorFitTransformTests(TestCase, TolerantFittingCases):
+    # We try to mimic most of the cases seen on Fit tests, and check that
+    # they are working equivalently with fit_transform
+    fit_method_name = 'fit_transform'
 
     def test_sample_is_excluded_if_any_feature_fails_when_evaluating_it(self):
+        self.ev = TolerantFeatureEvaluator([DescriptionFeature,
+                                            EntireSampleFeature])
         self.ev.FEATURE_STRICT_UNTIL = 0
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = len(SAMPLES) + 1  # dont exclude
-        self.ev.features = [DescriptionFeature, EntireSampleFeature]
         samples = SAMPLES[:]
         nodescription = {'nodescription': u'this sample has no description'}
         samples.append(nodescription)
-        result = self.ev.transform(samples)
+        result = self.ev.fit_transform(samples)
         self.assertTrue(len(list(result)) < len(samples))
         # EntireSampleFeature is the last, so is the last value per tuple
         self.assertNotIn(nodescription, [r[-1] for r in result])
-
-    def test_excluded_samples_are_reported_on_stats(self):
-        self.ev.FEATURE_STRICT_UNTIL = 0
-        self.ev.features = [DescriptionFeature]
-        self.ev.transform([{'pk': 123}])
-        self.assertIn(123, self.ev.get_training_stats()['discarded_samples'])
 
     def test_if_a_feature_is_excluded_all_results_doesnt_include_it(self):
         # This means: if a Feature evaluated fine for some samples until it was
         # excluded, once we decided to exclude it, we must make sure that
         # previous samples for which this feature was evaluated, are now
         # striped out of those evaluations
+        self.ev = TolerantFeatureEvaluator([DescriptionFeature, DumbFeatureA])
         self.ev.FEATURE_STRICT_UNTIL = 0
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
-        self.ev.features = [DescriptionFeature, DumbFeatureA]
-        result = self.ev.transform(SAMPLES + [{'nodescription': u'tada!'}])
+        result = self.ev.fit_transform(SAMPLES + [{'nodescription': u'tada!'}])
         # Check that there are results. Otherwise, next loop is dumb
         self.assertTrue(result)
         for r in result:
             self.assertEqual(len(r), 1)  # only one value per sample
-            self.assertEqual(r[0], 'a')  # Remember that DumbFeatureA returns 'a'
+            self.assertEqual(r[0], 'a')  # Remember DumbFeatureA returns 'a'
 
-    def test_when_a_feature_is_excluded_a_discarded_sample_is_reconsidered(self):
+    def test_when_feature_is_excluded_its_discarded_samples_are_reevalued(self):
+        self.ev = TolerantFeatureEvaluator([DescriptionFeature, DumbFeatureA,
+                                            EntireSampleFeature])
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
-        self.ev.features = [DescriptionFeature, DumbFeatureA, EntireSampleFeature]
         samples = SAMPLES[:]
         nodescription = {'nodescription': u'this sample has no description'}
         samples.append(nodescription)
-        result = list(self.ev.transform(samples))
+        result = list(self.ev.fit_transform(samples))
         self.assertEqual(len(samples), len(result))
         # EntireSampleFeature is the last, so is the last value per tuple
         self.assertIn(nodescription, [r[-1] for r in result])
 
-    def test_if_not_on_train_mode_errors_are_raised(self):
-        self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
-        self.ev.features = [BrokenFeature, DumbFeatureA]
-        self.assertRaises(RuntimeError, self.ev.transform,
-                          SAMPLES[:], train_mode=False)
+    def test_consumable_is_consumed_only_once(self):
+        samples = (s for s in SAMPLES)  # can be consumed once only
+        self.ev = TolerantFeatureEvaluator([EntireSampleFeature])
+        result = list(self.ev.fit_transform(samples))
+        self.assertEqual(len(SAMPLES), len(result))
 
 
-class TolerantFeatureEvaluatorTests(TestCase):
+class TolerantEvaluatorTransformTests(TestCase):
 
-    def test_when_transforming_instantiates_ActualEvaluator_with_same_features(self):
-        features = [DumbFeatureA, EntireSampleFeature]
-        ev = TolerantFeatureEvaluator(features)
-        actual_mock = mock.MagicMock()
-        actual_mock.transform.return_value = []
-        with mock.patch('featureforge.evaluator.ActualEvaluator') as actual_new:
-            actual_new.return_value = actual_mock
-            ev.transform(SAMPLES[:])
-            actual_new.assert_called_once_with(features)
-
-    def test_when_transforming_run_ActualEvaluator(self):
-        ev = TolerantFeatureEvaluator([])
-        with mock.patch.object(ActualEvaluator,
-                               'transform') as actual_transform_mock:
-            actual_transform_mock.return_value = [], {}
-            ev.transform(SAMPLES[:])
-            actual_transform_mock.assert_called_once_with(SAMPLES, train_mode=True)
-
-    def test_second_and_following_calls_for_same_Evaluator_arent_train(self):
-        ev = TolerantFeatureEvaluator([])
-        with mock.patch.object(ActualEvaluator,
-                               'transform') as actual_transform_mock:
-            actual_transform_mock.return_value = []
-            ev.transform(SAMPLES[:])
-            ev.transform(SAMPLES[:] + [{}])
-            ev.transform(SAMPLES[:] + [{}] + [{}])
-            self.assertEqual(actual_transform_mock.call_count, 3)
-            for call in actual_transform_mock.call_args_list[1:]:
-                self.assertEqual(call[1], {'train_mode': False})
-
-    def test_if_on_training_a_feature_failed_on_prediction_that_feature_is_excluded(self):
-        features = [DumbFeatureA, BrokenFeature]
-        ev = TolerantFeatureEvaluator(features)
-        ev.transform(SAMPLES[:])
-        # Let's see that when transforming again from same instance of
-        # TolerantFeatureEvaluator, the BrokenFeature is not passed
-        actual_mock = mock.MagicMock()
-        actual_mock.transform.return_value = []
-        with mock.patch('featureforge.evaluator.ActualEvaluator') as actual_new:
-            actual_new.return_value = actual_mock
-            ev.transform(SAMPLES[:])
-            actual_new.assert_called_once_with(features[:-1])
+    def test_errors_are_raised(self):
+        self.ev = TolerantFeatureEvaluator([BrokenFeature, DumbFeatureA])
+        self.ev.fit([])
+        def transform():
+            list(self.ev.transform(SAMPLES))  # force generation
+        self.assertRaises(RuntimeError, transform)
