@@ -8,6 +8,29 @@ logger = logging.getLogger(__name__)
 
 
 class Vectorizer(object):
+    """
+    Vectorizer(features) provides a scikit-learn compatible component that
+    given a collection of data points turns it into a matrix of vectors,
+    where each vector contains the evaluation of every given feature for a
+    single data point.
+
+    Numerical features are mapped to a column of the resulting matrix. 
+    Enumerated features are mapped to multiple columns (one for each possible
+    enumerated value), using 0 or 1 to indicate the presence of the enumerated
+    value. Vectorial features are mapped to multiple columns.
+
+    The API of this class follows scikit-learn conventions, see
+    http://scikit-learn.org/stable/modules/generated/sklearn.pipeline.Pipeline.html
+
+
+    Vectorizer(features, tolerant=True) changes the feature evaluation strategy
+    to one that is more tolerant to failures when evaluating features. It is
+    useful for testing and to run rough experiments when you still aren't sure
+    if your data is clean or your features are correct. See the documentation
+    for featureforge.evaluator.TolerantFeatureEvaluator
+
+    """
+
 
     def __init__(self, features, tolerant=False):
         # Upgrade `features` to `Feature` instances.

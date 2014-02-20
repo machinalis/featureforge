@@ -33,8 +33,35 @@ _EXPLAIN_PREDICATE_FAIL = {
 
 
 class FeatureFixtureCheckMixin(object):
+    """
+    This class is a TestCase mixin that provides some assertions to test
+    features.
+    
+    In most cases, you shouldn't use this directly but BaseFeatureFixture
+    instead
+    """
 
     def assert_feature_passes_fixture(self, feature_spec, fixture):
+        """
+        Check that the given feature (function or Feature instance) passes
+        all the conditions given in the fixture
+        
+        `fixture` is a dictionary where each key/value pair describes a simple
+        example for the feature. The key should be a string (which will be
+        reported in case of failure, so you know which case failed), and the
+        value is a tuple (input, predicate, value). The `input` is the value
+        that will be passed as argument as a feature. The predicate and the
+        value give the condition, and should be one of the following:
+
+         * (input, EQ, value) checks that feature(input) == value
+         * (input, APPROX, value) checks that feature(input) == value approximately
+           the error allowed is given by the constant EPSILON in this module
+         * (input, IN, values) checks that feature(input) in values
+         * (input, RAISES, eclass) checks that feature(input) raises an exception of
+           eclass type. Note that input/output validation always raise an exception
+           that subclasses ValueError
+        
+        """
         failures = []
         feature_spec = make_feature(feature_spec)
         for label, (data_point, predicate, value) in fixture.items():
@@ -47,6 +74,13 @@ class FeatureFixtureCheckMixin(object):
         self.assertFalse(failures, msg='; '.join(failures))
 
     def assert_passes_fuzz(self, feature_spec, tries=1000):
+        """
+        Generates tries data points for the feature (which should have an
+        input schema which allows generation) randomly, and applies those
+        to the feature. It checks that the evaluation proceeds without raising
+        exceptions and that it produces valid outputs according to the
+        output schema.
+        """
         feature_spec = make_feature(feature_spec)
         for i in xrange(tries):
             data_point = generate.generate(feature_spec.input_schema)
@@ -62,6 +96,24 @@ class FeatureFixtureCheckMixin(object):
 
 
 class BaseFeatureFixture(FeatureFixtureCheckMixin):
+    """
+    Inheriting this class together with unittest.TestCase allows you to
+    quickly build test cases for features. Your subclass should define two
+    class attributes:
+
+    `feature` should be a function or a Feature() instance
+
+    `fixture` has a list of cases to test; check the documentation
+    of `assert_feature_passes_fixture` for more details.
+
+    The class defined by this will validate all features in the fixture. It will
+    also subject the feature to fuzzy testing if the input schema allows it. 
+    It's also possible to add additional tests to the testcase.
+
+    If you want to have more control about how the fixture is applied or skip
+    fuzzy testing, take a look at the FeatureFixtureCheckMixin.
+    """
+
     feature = None  # Needs to be defined on subclasses
 
     def test_fixtures(self):
