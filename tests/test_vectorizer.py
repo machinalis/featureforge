@@ -15,7 +15,6 @@ class TestVectorizer(TestCase):
             v = vectorizer.Vectorizer([sample_feature])
         self.assertEqual(len(mock_e.call_args_list), 1)
         arg = mock_e.call_args_list[0][0][0]
-        print arg
         self.assertEqual(len(arg), 1)
         self.assertIsInstance(arg[0], Feature)
         self.assertEqual(arg[0].name, "sample_feature")
