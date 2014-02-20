@@ -29,6 +29,83 @@ class FeatureEvaluator(object):
 
 class TolerantFeatureEvaluator(object):
 
+    FEATURE_STRICT_UNTIL = 100
+    FEATURE_MAX_ERRORS_ALLOWED = 5
+
+    class NoFeaturesLeftError(Exception):
+        pass
+
+    def __init__(self, features):
+        self.features = features
+        self.fitted = False
+
+    def fit(self, X, y=None):
+        self._fit_failure_stats = {
+            'discarded_samples': [],
+            'features': defaultdict(list)
+        }
+        self.alive_features = self.features[:]
+
+        dataset = X
+        last_sample_idx = -1  # Caution
+        while dataset:
+            self._samples_to_retry = []
+            for i, d in enumerate(dataset, last_sample_idx + 1):
+                for feature in self.alive_features[:]:
+                    try:
+                        feature(d)
+                    except Exception, e:
+                        self.process_failure([], e, feature, d, i)
+                        break
+            last_sample_idx = i
+            dataset = self._samples_to_retry
+
+        self.alive_features = tuple(self.alive_features)
+        self.fitted = True
+        return self
+
+    def process_failure(self, partial_eval, error, feature, dpoint, d_index):
+        logger.warning(u'Fail evaluating %s: %s %s' % (feature,
+                                                       type(error), error))
+        self._fit_failure_stats['discarded_samples'].append(
+            dpoint.get('pk', 'PK-NOT-FOUND'))
+        feature_errors = self._fit_failure_stats['features'][feature]
+        feature_errors.append(dpoint)
+        if d_index < self.FEATURE_STRICT_UNTIL:
+            self.exclude_feature(feature, partial_eval)
+        elif len(feature_errors) > self.FEATURE_MAX_ERRORS_ALLOWED:
+            self.exclude_feature(feature, partial_eval)
+
+    def exclude_feature(self, feature, partial_evaluation):
+        idx = self.alive_features.index(feature)
+        self.alive_features.remove(feature)
+        if not self.alive_features:
+            raise self.NoFeaturesLeftError()
+        for evaluation in partial_evaluation:
+            evaluation.pop(idx)
+        discarded_samples = self._fit_failure_stats['features'][feature]
+        self._samples_to_retry += discarded_samples
+
+    def transform(self, X, y=None):
+        features = self.features
+        is_train = True
+        if self.training_stats is not None:
+            is_train = False  # We dont support incremental trainings.
+            to_exclude = self.training_stats['excluded_features']
+            features = [f for f in features if f not in to_exclude]
+
+        logger.info("Starting feature evaluation id=%d", id(X))
+        ae = ActualEvaluator(features)
+        result = ae.transform(X, train_mode=is_train)
+        logger.info("Finished feature evaluation id=%d", id(X))
+
+        if self.training_stats is None:
+            self.training_stats = ae.get_training_stats()
+        return result
+
+
+class XTolerantFeatureEvaluator(object):
+
     def __init__(self, features):
         self.features = features
         self.training_stats = None
