@@ -1,4 +1,5 @@
 from featureforge import generate
+from featureforge.feature import make_feature
 import schema
 
 EQ = 'EQ'
@@ -35,6 +36,7 @@ class FeatureFixtureCheckMixin(object):
 
     def assert_feature_passes_fixture(self, feature_spec, fixture):
         failures = []
+        feature_spec = make_feature(feature_spec)
         for label, (data_point, predicate, value) in fixture.items():
             if not _PREDICATES[predicate](feature_spec, data_point, value):
                 msg = '%s failed, %s %s %s' % (
@@ -45,6 +47,7 @@ class FeatureFixtureCheckMixin(object):
         self.assertFalse(failures, msg='; '.join(failures))
 
     def assert_passes_fuzz(self, feature_spec, tries=1000):
+        feature_spec = make_feature(feature_spec)
         for i in xrange(tries):
             data_point = generate.generate(feature_spec.input_schema)
             try:
@@ -71,11 +74,10 @@ class BaseFeatureFixture(FeatureFixtureCheckMixin):
 ### EXAMPLE ###
 
 if __name__ == "__main__":
-    from featureforge.feature import input_schema, output_schema, make_feature
+    from featureforge.feature import input_schema, output_schema
     from schema import Schema, And
     import unittest
 
-    @make_feature
     @input_schema(str)
     @output_schema(int, lambda n: n >= 0)
     def length(data_point):
