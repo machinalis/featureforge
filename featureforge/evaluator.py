@@ -116,7 +116,7 @@ class TolerantFeatureEvaluator(object):
 
         self.alive_features = tuple(self.alive_features)
         self.fitted = True
-        return result
+        return (tuple(r) for r in result)
 
     def process_failure(self, partial_eval, error, feature, dpoint, d_index):
         logger.warning(u'Fail evaluating %s: %s %s' % (feature,
