@@ -2,7 +2,8 @@ import mock
 import types
 from unittest import TestCase
 
-from featureforge import evaluator  # Imported like this to help mocking
+from featureforge.evaluator import (ActualEvaluator, FeatureEvaluator,
+                                    TolerantFeatureEvaluator)
 from featureforge.feature import make_feature, input_schema, output_schema
 
 
@@ -53,20 +54,20 @@ SAMPLES = [
 class SimpleEvaluatorTests(TestCase):
 
     def test_fit_creates_alive_features_tuple(self):
-        ev = evaluator.FeatureEvaluator([DumbFeatureA])
+        ev = FeatureEvaluator([DumbFeatureA])
         self.assertFalse(hasattr(ev, 'alive_features'))
         ev.fit([])
         self.assertTrue(hasattr(ev, 'alive_features'))
 
     def test_returns_generator(self):
-        ev = evaluator.FeatureEvaluator([DumbFeatureA])
+        ev = FeatureEvaluator([DumbFeatureA])
         ev.fit([])
         Xt = ev.transform([])
         self.assertIsInstance(Xt, types.GeneratorType)
 
     def test_returns_tuples_of_features_length(self):
         features = [DumbFeatureA, DumbFeatureA]
-        ev = evaluator.FeatureEvaluator(features)
+        ev = FeatureEvaluator(features)
         ev.fit(SAMPLES)
         Xt = ev.transform(SAMPLES)
         x = Xt.next()
@@ -74,13 +75,13 @@ class SimpleEvaluatorTests(TestCase):
         self.assertEqual(len(x), len(features))
 
     def test_returns_as_many_tuples_as_samples(self):
-        ev = evaluator.FeatureEvaluator([DumbFeatureA])
+        ev = FeatureEvaluator([DumbFeatureA])
         ev.fit(SAMPLES)
         Xt = ev.transform(SAMPLES)
         self.assertEqual(len(list(Xt)), len(SAMPLES))
 
     def test_fit_transform_does_both_things(self):
-        ev = evaluator.FeatureEvaluator([DumbFeatureA])
+        ev = FeatureEvaluator([DumbFeatureA])
         Xt_1 = ev.fit_transform(SAMPLES)
         Xt_2 = ev.transform(SAMPLES)
         self.assertListEqual(list(Xt_1), list(Xt_2))
@@ -89,7 +90,7 @@ class SimpleEvaluatorTests(TestCase):
 class ActualEvaluatorFailureToleranceTests(TestCase):
     def setUp(self):
         features = [DescriptionFeature, DumbFeatureA]
-        self.ev = evaluator.ActualEvaluator(features[:])
+        self.ev = ActualEvaluator(features[:])
 
     def test_feature_is_excluded_if_fails_on_firts_M_samples(self):
         # We'll use 2 as M
@@ -190,7 +191,7 @@ class TolerantFeatureEvaluatorTests(TestCase):
 
     def test_when_transforming_instantiates_ActualEvaluator_with_same_features(self):
         features = [DumbFeatureA, EntireSampleFeature]
-        ev = evaluator.TolerantFeatureEvaluator(features)
+        ev = TolerantFeatureEvaluator(features)
         actual_mock = mock.MagicMock()
         actual_mock.transform.return_value = []
         with mock.patch('featureforge.evaluator.ActualEvaluator') as actual_new:
@@ -199,16 +200,16 @@ class TolerantFeatureEvaluatorTests(TestCase):
             actual_new.assert_called_once_with(features)
 
     def test_when_transforming_run_ActualEvaluator(self):
-        ev = evaluator.TolerantFeatureEvaluator([])
-        with mock.patch.object(evaluator.ActualEvaluator,
+        ev = TolerantFeatureEvaluator([])
+        with mock.patch.object(ActualEvaluator,
                                'transform') as actual_transform_mock:
             actual_transform_mock.return_value = [], {}
             ev.transform(SAMPLES[:])
             actual_transform_mock.assert_called_once_with(SAMPLES, train_mode=True)
 
     def test_second_and_following_calls_for_same_Evaluator_arent_train(self):
-        ev = evaluator.TolerantFeatureEvaluator([])
-        with mock.patch.object(evaluator.ActualEvaluator,
+        ev = TolerantFeatureEvaluator([])
+        with mock.patch.object(ActualEvaluator,
                                'transform') as actual_transform_mock:
             actual_transform_mock.return_value = []
             ev.transform(SAMPLES[:])
@@ -220,7 +221,7 @@ class TolerantFeatureEvaluatorTests(TestCase):
 
     def test_if_on_training_a_feature_failed_on_prediction_that_feature_is_excluded(self):
         features = [DumbFeatureA, BrokenFeature]
-        ev = evaluator.TolerantFeatureEvaluator(features)
+        ev = TolerantFeatureEvaluator(features)
         ev.transform(SAMPLES[:])
         # Let's see that when transforming again from same instance of
         # TolerantFeatureEvaluator, the BrokenFeature is not passed
