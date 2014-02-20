@@ -21,25 +21,32 @@ def EntireSampleFeature(data_point):
 
 
 @make_feature
-@input_schema({'caption': unicode})
+@input_schema({'description': unicode})
 @output_schema(unicode)
-def CaptionFeature(data_point):
-    return data_point['caption']
+def DescriptionFeature(data_point):
+    return data_point['description']
 
 
 @make_feature
-@input_schema({'caption': unicode})
+@input_schema({'age': int})
+@output_schema(unicode)
+def AgeFeature(data_point):
+    return data_point['age']
+
+
+@make_feature
+@input_schema({'description': unicode})
 @output_schema(unicode)
 def BrokenFeature(data_point):
     raise RuntimeError()
 
 
 SAMPLES = [
-    {'pk': 1, 'caption': u'nice'},
-    {'pk': 2, 'caption': u'awesome moment with friends'},
-    {'pk': 3, 'caption': u'', 'other_field': u'something'},
-    {'pk': 4, 'caption': u'this is a long the caption'},
-    {'pk': 5, 'caption': u'everything is great, but we have no pk'}
+    {'pk': 1, 'description': u'nice'},
+    {'pk': 2, 'description': u'awesome moment with friends'},
+    {'pk': 3, 'description': u'', 'other_field': u'something'},
+    {'pk': 4, 'description': u'this is a long description text, deal with it'},
+    {'pk': 5, 'description': u'everything is great'}
 ]
 
 
@@ -81,28 +88,28 @@ class SimpleEvaluatorTests(TestCase):
 
 class ActualEvaluatorFailureToleranceTests(TestCase):
     def setUp(self):
-        features = [CaptionFeature, DumbFeatureA]
+        features = [DescriptionFeature, DumbFeatureA]
         self.ev = evaluator.ActualEvaluator(features[:])
 
     def test_feature_is_excluded_if_fails_on_firts_M_samples(self):
         # We'll use 2 as M
         self.ev.FEATURE_STRICT_UNTIL = 2
-        # The caption-feature needs "caption" on data-point
-        actual_feature = CaptionFeature
-        caption_feature = mock.Mock(wraps=actual_feature,
+        # The description-feature needs "description" on data-point
+        actual_feature = DescriptionFeature
+        description_feature = mock.Mock(wraps=actual_feature,
                                     spec=actual_feature)
-        self.ev.features = [caption_feature, DumbFeatureA]
+        self.ev.features = [description_feature, DumbFeatureA]
         samples = SAMPLES[:]
         samples.insert(0, {'pk': 33})
         self.ev.transform(samples)
         failures = self.ev.get_training_stats()
         # Caption was excluded from features list
-        self.assertNotIn(caption_feature, self.ev.features)
+        self.assertNotIn(description_feature, self.ev.features)
         # Caption was included on the exclusion list
-        self.assertIn(caption_feature, failures['excluded_features'])
+        self.assertIn(description_feature, failures['excluded_features'])
         # Feature was not called anymore after failing, which occurred with the
         # first sample
-        self.assertEqual(caption_feature.call_count, 1)
+        self.assertEqual(description_feature.call_count, 1)
 
     def test_feature_is_excluded_after_K_fails_no_matter_when(self):
         # We'll make sure strict mode is turned off
@@ -131,18 +138,18 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
     def test_sample_is_excluded_if_any_feature_fails_when_evaluating_it(self):
         self.ev.FEATURE_STRICT_UNTIL = 0
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = len(SAMPLES) + 1  # dont exclude
-        self.ev.features = [CaptionFeature, EntireSampleFeature]
+        self.ev.features = [DescriptionFeature, EntireSampleFeature]
         samples = SAMPLES[:]
-        nocaption = {'nocaption': u'this sample has no caption'}
-        samples.append(nocaption)
+        nodescription = {'nodescription': u'this sample has no description'}
+        samples.append(nodescription)
         result = self.ev.transform(samples)
         self.assertTrue(len(list(result)) < len(samples))
         # EntireSampleFeature is the last, so is the last value per tuple
-        self.assertNotIn(nocaption, [r[-1] for r in result])
+        self.assertNotIn(nodescription, [r[-1] for r in result])
 
     def test_excluded_samples_are_reported_on_stats(self):
         self.ev.FEATURE_STRICT_UNTIL = 0
-        self.ev.features = [CaptionFeature]
+        self.ev.features = [DescriptionFeature]
         self.ev.transform([{'pk': 123}])
         self.assertIn(123, self.ev.get_training_stats()['discarded_samples'])
 
@@ -153,8 +160,8 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
         # striped out of those evaluations
         self.ev.FEATURE_STRICT_UNTIL = 0
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
-        self.ev.features = [CaptionFeature, DumbFeatureA]
-        result = self.ev.transform(SAMPLES + [{'nocaption': u'tada!'}])
+        self.ev.features = [DescriptionFeature, DumbFeatureA]
+        result = self.ev.transform(SAMPLES + [{'nodescription': u'tada!'}])
         # Check that there are results. Otherwise, next loop is dumb
         self.assertTrue(result)
         for r in result:
@@ -163,14 +170,14 @@ class ActualEvaluatorFailureToleranceTests(TestCase):
 
     def test_when_a_feature_is_excluded_a_discarded_sample_is_reconsidered(self):
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
-        self.ev.features = [CaptionFeature, DumbFeatureA, EntireSampleFeature]
+        self.ev.features = [DescriptionFeature, DumbFeatureA, EntireSampleFeature]
         samples = SAMPLES[:]
-        nocaption = {'nocaption': u'this sample has no caption'}
-        samples.append(nocaption)
+        nodescription = {'nodescription': u'this sample has no description'}
+        samples.append(nodescription)
         result = list(self.ev.transform(samples))
         self.assertEqual(len(samples), len(result))
         # EntireSampleFeature is the last, so is the last value per tuple
-        self.assertIn(nocaption, [r[-1] for r in result])
+        self.assertIn(nodescription, [r[-1] for r in result])
 
     def test_if_not_on_train_mode_errors_are_raised(self):
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
