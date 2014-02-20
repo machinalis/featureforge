@@ -70,7 +70,7 @@ class TolerantFeatureEvaluator(object):
                 for feature in self.alive_features[:]:
                     try:
                         feature(d)
-                    except Exception, e:
+                    except Exception as e:
                         self.process_failure([], e, feature, d, i)
                         break
             last_sample_idx = i
