@@ -75,7 +75,7 @@ class TestFeatureMappingFlattener(unittest.TestCase):
         X = self._get_random_tuples()
         random.seed("black mambazo")
         Y = list(self._get_random_tuples())
-        V = FeatureMappingFlattener()
+        V = FeatureMappingFlattener(sparse=False)
         V.fit(X)
         Z = V.transform(Y)
         for y, z in zip(Y, Z):
@@ -177,7 +177,7 @@ class TestFeatureMappingFlattener(unittest.TestCase):
         random.seed("a kiss to build a dream on")
         X = list(self._get_random_tuples())
         X_consumable = (x for x in X)
-        V1 = FeatureMappingFlattener()
+        V1 = FeatureMappingFlattener(sparse=False)
         V1.fit(X)
         Z1 = V1.transform(X)
         Z2 = V1.fit_transform(X_consumable)
