@@ -12,58 +12,83 @@ logger = logging.getLogger(__name__)
 
 class FeatureMappingFlattener(object):
     """
-    This class maps feature dicts into numpy arrays.
-    Strictly speaking, maps iterables of feature dicts into bidimensional
-    numpy arrays such that if the array shape is (N, M) then there were N
-    elements in the iterable and M features.
+    This class maps feature tuples into numpy/scipy matrices.
 
-    A feature dict is a python dictionary of the shape:
-        {
-            "key1": 3,  # Any int
-            "key2": u"value",  # Any basestring
-            "key3": [1, 5, 9]  # A list of integers
-        }
-    Keys are meant to be feature names, valid types are str and unicode
-    Values are:
+    The main benefits of using it are:
+        - String one-hot encoding is handled automatically
+        - Input is validated so that each row preserves its "schema"
+        - Generates sparse matrices
+
+    A feature tuple is a regular python tuple of the shape:
+        (
+            ...
+            3,         # Any int (or float)
+            u"value",  # Any string (str or unicode)
+            [1, 5, 9]  # A list of integers (or floats)
+            ...
+        )
+
+    Tuple values are:
         - int/float
         - str/unicode: Are meant to be enumerated types and are one-hot
           encoded.
         - list/tuple/array of integers/floats: A convenience method to pack
-          several numbers togheter but otherwise equivalent to giving each
-          number in the list a unique key in the dict.
+          several numbers togheter but otherwise equivalent to inserting each
+          value into the feature tuple.
 
-    The flattener needs to be _fitted_ to the available feature dictionaries
-    before being able to transform feature dicts to numpy arrays. This is
-    because during fitting:
-        - The dimension of the output array is calculated.
-        - A mapping between dict keys and output array indexes is fixed.
+    The flattener needs to be _fitted_ to the available feature tuples
+    before being able to transform feature tuples to numpy/scipy matrices.
+    This is because during fitting:
+        - The dimension of the output matrix' rows are calculated.
+        - A mapping between tuple indexes and output row indexes is fixed.
         - A schema of the data for validation is inferred.
-        - one-hot encoding values are learned.
+        - One-hot encoding values are learned.
         - Validation is applied to the data being fitted.
 
     Validation checks:
-        - Types comply with the above description.
-        - key/value pairs don't have different types between different dicts.
-        - No key/value pairs are missing (from what is learnt during fitting).
-        - No extra key/value pair is present.
+        - Tuple size is always the same
+        - Values' types comply with the above description.
+        - The i-th value of the feature tuples doesn't have different types
+          between different input tuples.
 
-    After fitting the instance is ready to transform new feature dicts into
-    numpy arrays as long as they comply with the schema inferred during
+    After fitting the instance is ready to transform new feature tuples into
+    numpy/scipy matrices as long as they comply with the schema inferred during
     fitting.
     """
 
     def __init__(self, sparse=True):
+        """
+        If `sparse` is `True` the transform/fit_transform methods generate a
+        `scipy.sparse.csr_matrix` matrix.
+        Else the transform/fit_transform generate `numpy.array` (dense).
+        """
         self.sparse = sparse
 
     def fit(self, X, y=None):
-        """X must be a list, sequence or iterable of points,
-        but not a single data point.
+        """Learns a mapping between feature tuples and matrix row indexes.
+
+        Parameters
+        ----------
+        X : List, sequence or iterable of tuples but not a single tuple
+        y : (ignored)
+
+        Returns
+        -------
+        self
         """
         return self._wrapcall(self._fit, X)
 
     def transform(self, X, y=None):
-        """X must be a list, sequence or iterable points,
-        but not a single data point.
+        """Transform feature tuples to a numpy or sparse matrix.
+
+        Parameters
+        ----------
+        X : List, sequence or iterable of tuples but not a single tuple
+        y : (ignored)
+
+        Returns
+        -------
+        Z : A numpy or sparse matrix
         """
         if self.sparse:
             return self._wrapcall(self._sparse_transform, X)
@@ -71,8 +96,17 @@ class FeatureMappingFlattener(object):
             return self._wrapcall(self._transform, X)
 
     def fit_transform(self, X, y=None):
-        """X must be a list, sequence or iterable points,
-        but not a single data point.
+        """Learns a mapping between feature tuples and matrix row indexes and
+        then transforms the feature tuples to a numpy or sparse matrix.
+
+        Parameters
+        ----------
+        X : List, sequence or iterable of tuples but not a single tuple
+        y : (ignored)
+
+        Returns
+        -------
+        Z : A numpy or sparse matrix
         """
         if self.sparse:
             return self._wrapcall(self._sparse_fit_transform, X)
@@ -243,8 +277,9 @@ class FeatureMappingFlattener(object):
 
         for datapoint in self._iter_valid(X):
             for i, value in self._sparse_transform_step(datapoint):
-                data.append(value)
-                indices.append(i)
+                if data != 0:
+                    data.append(value)
+                    indices.append(i)
             indptr.append(len(data))
 
         if not data:
@@ -275,8 +310,9 @@ class FeatureMappingFlattener(object):
         for datapoint in self._iter_valid(X, first=first):
             self._fit_step(datapoint)
             for i, value in self._sparse_transform_step(datapoint):
-                data.append(value)
-                indices.append(i)
+                if data != 0:
+                    data.append(value)
+                    indices.append(i)
             indptr.append(len(data))
 
         if not data:
