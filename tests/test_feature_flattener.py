@@ -8,7 +8,6 @@ from featureforge.flattener import FeatureMappingFlattener
 
 
 #TODO: Test that matrix output has expected values
-#TODO: Test that fit_transform works with one pass of the input
 
 
 class TestFeatureMappingFlattener(unittest.TestCase):
@@ -86,8 +85,6 @@ class TestFeatureMappingFlattener(unittest.TestCase):
     def test_fit_transform_ok(self):
         random.seed("a kiss to build a dream on")
         X = list(self._get_random_tuples())
-        #random.seed("Heartaches by the Numbers")
-        #Y = self._get_random_tuples()
         V = FeatureMappingFlattener()
         Z = V.fit_transform(X)
         n = 100
@@ -127,7 +124,7 @@ class TestFeatureMappingFlattener(unittest.TestCase):
         A = FeatureMappingFlattener()
         A.fit(X)
         YA = A.transform(X)
-        
+
         # fit_transform
         B = FeatureMappingFlattener()
         YB = B.fit_transform(X)
@@ -136,6 +133,16 @@ class TestFeatureMappingFlattener(unittest.TestCase):
         self.assertEqual(A.indexes, B.indexes)
         self.assertEqual(A.reverse, B.reverse)
 
+    def test_fit_transform_consumes_data_only_once(self):
+        random.seed("a kiss to build a dream on")
+        X = list(self._get_random_tuples())
+        X_consumable = (x for x in X)
+        V1 = FeatureMappingFlattener()
+        V1.fit(X)
+        Z1 = V1.transform(X)
+        Z2 = V1.fit_transform(X_consumable)
+        self.assertTrue(numpy.array_equal(Z1, Z2))
+
     def test_sparse_is_equivalent(self):
         random.seed("jingle dingle")
         X = list(self._get_random_tuples())
@@ -143,7 +150,7 @@ class TestFeatureMappingFlattener(unittest.TestCase):
         # fit + transform
         A = FeatureMappingFlattener()
         YA = A._sparse_fit_transform(X).todense()
-        
+
         # fit_transform
         B = FeatureMappingFlattener()
         YB = B.fit_transform(X)
