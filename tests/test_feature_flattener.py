@@ -3,6 +3,7 @@ import unittest
 import random
 
 import numpy
+import scipy
 
 from featureforge.flattener import FeatureMappingFlattener
 
@@ -69,6 +70,20 @@ class TestFeatureMappingFlattener(unittest.TestCase):
         d = next(self._get_random_tuples())
         Z = V.transform([d])  # Test that works for one dict too
         self.assertEqual(Z.shape, (1, m))
+
+    def test_transform_returns_a_matrix(self):
+        random.seed("lady smith")
+        X = list(self._get_random_tuples())
+        random.seed("black mambazo")
+        Y = list(self._get_random_tuples())
+        for sparse in [True, False]:
+            V = FeatureMappingFlattener(sparse=sparse)
+            V.fit(X)
+            Z = V.transform(Y)
+            if sparse:
+                self.assertIsInstance(Z, scipy.sparse.csr_matrix)
+            else:
+                self.assertIsInstance(Z, numpy.ndarray)
 
     def test_transform_produce_the_expected_values_on_the_result(self):
         random.seed("lady smith")
@@ -161,7 +176,7 @@ class TestFeatureMappingFlattener(unittest.TestCase):
             A = FeatureMappingFlattener(sparse=sparse)
             A.fit(X)
             YA = A.transform(X)
-            
+
             # fit_transform
             B = FeatureMappingFlattener(sparse=sparse)
             YB = B.fit_transform(X)
