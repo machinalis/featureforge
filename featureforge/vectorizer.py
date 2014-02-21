@@ -41,7 +41,7 @@ class Vectorizer(object):
             self.evaluator = TolerantFeatureEvaluator(features)
         else:
             self.evaluator = FeatureEvaluator(features)
-        self.flattener = FeatureMappingFlattener()
+        self.flattener = FeatureMappingFlattener(sparse=sparse)
 
     def fit(self, X, y=None):
         Xt = self.evaluator.fit_transform(X, y)
