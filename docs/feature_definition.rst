@@ -19,13 +19,13 @@ In python code, a feature will essentially be a function that maps data
 points into *feature values*. For some features, there's a limited set
 of possible values (the feature "presence of images" ranges into "yes"/"no"),
 others can have discrete numeric values (example: "count of bytes in the
-message"), and others can have continuous values (example: "ratio of 
+message"), and others can have continuous values (example: "ratio of
 upper/lowercase characters in the subject").
 
 It is also possible to think about sets of related features as a vector typed
 feature value. For example, instead of having a feature "frequency of the letter
 A", another "frequency of the letter B", and another 24 up to Z, you could
-have a single feature "frequency of each letter" with a value which is a 
+have a single feature "frequency of each letter" with a value which is a
 26-element vector with each element in [0..1]
 
 
@@ -39,7 +39,9 @@ Feature Forge provides you some help with the boilerplate of defining features
 and help you testing them
 
 In its most basic form, you can define a feature just as a function, for
-example::
+example
+
+.. code-block:: python
 
     # Assuming our data points are dictionaries
 
@@ -62,7 +64,7 @@ features are not used directly by your code, and the results aren't directly
 exposed to a person. Instead, most features are applied to a large, unknown
 set of data, and its results aggregated statistically. If you're lucky, the
 mistakes will produce exceptions that you'll be able to detect and fix, but
-in many cases the feature is producing a wrong result, and it's not even 
+in many cases the feature is producing a wrong result, and it's not even
 obvious that there's a problem when looking at a statistical aggregate value.
 
 Other problem that you'll find frequently is that your source of data points
@@ -82,14 +84,16 @@ to specify those, FeatureForge provides a system based on Vladimir Keleshev's
 to know what you can express with it. In this documentation we will provide a
 few examples useful for common machine learning situations.
 
-In the last example, data points are dictionaries with at least a key called
+In the next example, data points are dictionaries with at least a key called
 "body" tied to a unicode string (the message body), and feature value is a
-non-negative integer. You can specify that in the following way::
+non-negative integer. You can specify that in the following way
+
+.. code-block:: python
 
     from featureforge.feature import input_schema, output_schema
 
     @input_schema({"body": unicode})
-    @output_schema(int, lambda l: l >= 0)
+    @output_schema(int, lambda i: i >= 0)
     def body_length(message):
         return len(message["body"])
 
@@ -104,7 +108,9 @@ There a few important aspects of this code:
    so an input {"subject": u"Hi", "body": u"I'm here"} would be a valid input
    for the input schema above.
 
-Once you have defined your feature like this, you can write a basic test case::
+Once you have defined your feature like this, you can write a basic test case
+
+.. code-block:: python
 
     import unittest
     from featureforge.validate import BaseFeatureFixture, EQ, IN, APPROX, RAISES
@@ -139,7 +145,7 @@ dictionaries), and may not be available if you add complex lambda expressions
 or custom types to your schemas. This might be extended to support custom
 generator of data points in the future.
 
-The fuzzy generator supports: ``int``, ``float``, ``bool``, ``str``, 
+The fuzzy generator supports: ``int``, ``float``, ``bool``, ``str``,
 ``unicode``, ``datetime``. Also nested combinations of those built with
 ``dict`` (with literal string keys), ``list``, ``tuple``, ``set`` and
 ``frozenset``. ``schema.Or`` is supported. ``schema.And`` only works if the
@@ -157,10 +163,12 @@ Feature factories and renaming
 Sometimes it's useful to use some python metaprogramming tricks to build many
 similar features. Let's say that your data point is a social media post,
 represented as a dictionary with many numeric values representing different
-properties (number of comments, number of likes, number of shares) that you 
+properties (number of comments, number of likes, number of shares) that you
 want to extract as features. Writing those features is quite easy, although
 somewhat tedious and repetitive if you have tens of those properties. You
-could instead do the following::
+could instead do the following
+
+.. code-block:: python
 
     # This is a simple example, don't use this code, there's a better way in a
     # later example.
@@ -170,7 +178,7 @@ could instead do the following::
         def get_property(post):
             return post[label]
         return get_property
-        
+
     likes = int_property('likes')
     comments = int_property('comments')
     shares = int_property('shares')
@@ -187,7 +195,9 @@ FeatureForge allows you to rename the name used in error messages to provide
 more valuable error messages, you just need to add a `feature_name` decorator
 to the function where you can specify a better name (it doesn't need to be
 a valid python identifier). The better way to write the example above would
-be::
+be
+
+.. code-block:: python
 
     def int_property(label):
         @input_schema({label: int})
@@ -196,7 +206,7 @@ be::
         def get_property(post):
             return post[label]
         return get_property
-        
+
     likes = int_property('likes')
     comments = int_property('comments')
     ... etc ...
@@ -213,9 +223,11 @@ In some cases, when a feature has many parameters or a complex initialization
 code, it might be more practical to define them as classes instead of
 functions (bare or decorated). You can do that by defining a
 subclass of `featureforge.feature.Feature`. In that case, you need to add the
-feature evaluation code in `_evaluate`, any initialization code you like in 
+feature evaluation code in `_evaluate`, any initialization code you like in
 `__init__`, and define class attributes `input_schema` and `output_schema`.
-This is a possible example::
+This is a possible example
+
+.. code-block:: python
 
     from featureforge.feature import Feature, soft_schema
     from schema import Schema
@@ -242,7 +254,7 @@ you can even call them as functions. One difference with the function API is
 that if you call them (i.e. `has_bad_word_spanish(some_message)`) and the
 input/output isn't valid, this will automatically check it and produce an
 exception. The exception produced is a subclass of ValueError, more precisely
-`has_bad_word_spanish.InputValueError` or 
+`has_bad_word_spanish.InputValueError` or
 `has_bad_word_spanish.OutputValueError`.
 
 Also note that the schemas have to be built explicitly using the schema
@@ -274,7 +286,7 @@ fixtures on the fly.
 
 If that's the case, you can inherit instead `validate.FeatureFixtureCheckMixin`.
 This class doesn't define any test (so you have to write it explicitly), but
-it defines two assertions: `assert_feature_passes_fixture` and 
+it defines two assertions: `assert_feature_passes_fixture` and
 `assert_passes_fuzz`. The latter also allows you to manually control how many
 data points to generate.
 
@@ -283,7 +295,7 @@ Check the API documentation for details on those.
 Specifying schemas
 ------------------
 
-The complete documentation for the schema library is at 
+The complete documentation for the schema library is at
 <https://github.com/halst/schema/blob/master/README.rst>. However we provide
 here some examples for typical situations.
 
@@ -297,13 +309,16 @@ so typically one of the following ``output_schema`` will be ok:
 
 In addition to a type specification, it is sometimes useful to add to the
 schema one lambda with an assertion over the value. For example,
-a feature that always returns positive floats may be specified as::
+a feature that always returns positive floats may be specified as
+
+.. code-block:: python
 
     @output_schema(float, lambda v: v > 0.0)
 
 and a feature that always returns pairs of numbers which are never (0.0, 0.0)
-can be specified as::
+can be specified as
 
+.. code-block:: python
 
     @output_schema(tuple(float), lambda v: len(v) == 2 and v != (0.0, 0.0))
 
@@ -321,7 +336,9 @@ complicated object in your fixtures even if your feature cares about a small
 aspect of the data (which is the most typical case).
 
 Let's say for example that our data point are email messages, and that a typical
-data point is a dictionary like this::
+data point is a dictionary like this
+
+.. code-block:: python
 
     {
         "sender": {
@@ -337,7 +354,9 @@ data point is a dictionary like this::
         "date": (2014, 02, 20)
     }
 
-it's possible to build a general schema like::
+it's possible to build a general schema like
+
+.. code-block:: python
 
     data_schema = schema.Schema({
         "sender": {
@@ -359,7 +378,9 @@ it's possible to build a general schema like::
 
 And then use it in all your features as ``@input_schema(data_schema)``. However,
 you'll have an easier time specifying, testing, and modifying your system if
-you specify only what's relevant for each feature; for example::
+you specify only what's relevant for each feature; for example
+
+.. code-block:: python
 
     @input_schema({"subject": str})
     def words_in_subject(...): ...
@@ -370,12 +391,14 @@ you specify only what's relevant for each feature; for example::
 input schemas also allow specifying schemas for attributes of objects if your
 data point is some custom object, or something like a ``namedtuple``. If the
 example above had a nested tuple structure, these are the schemas you should
-use::
+use
+
+.. code-block:: python
 
     @input_schema(subject=str)
     def words_in_subject(...): ...
 
-    @input_schema(sender=ObjectSchema(address=str), 
+    @input_schema(sender=ObjectSchema(address=str),
                   recipient=ObjectSchema(address=str))
     def sender and_recipient_in_same_domain(...): ...
 
@@ -407,7 +430,9 @@ Handling "holes" in your input
 Sometimes your input data has "holes" in it. For example you might have a
 data point for people which is a namedtuple(name, age, address), but you do not
 know the age of everyone so the age field is sometimes an int, and other times
-a ``None``. In that case, you can specify the input schema as::
+a ``None``. In that case, you can specify the input schema as
+
+.. code-block:: python
 
     @input_schema(age=schema.Or(int, None))
 
@@ -431,4 +456,3 @@ If you need to persist the features, you should stick to the class based
 approach for defining them. It's more verbose, but Feature subclasses should
 be easy to serialize with pickle or a similar tool if you follow the
 recipe for defining them used in this document.
-
