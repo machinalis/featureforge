@@ -30,14 +30,15 @@ class Feature(object):
     Feature instances represent a single feature. This class is never
     instantiated as is; you build an instance using make_feature on a decorated
     function, or you define a subclass and instantiate that.
-    
+
     The instance has a callable interface, taking a data point and returning a
     feature value. The typical use case is overriding the `_evaluate` method and
     leaving the standard `__call__` in place (which wraps `_evaluate` adding
     input and output validation)
-    
-    Besides the `__call__` methods, the following class attributes are available:
-    
+
+    Besides the `__call__` methods, the following class attributes are
+    available:
+
      * `input_schema` is a `schema.Schema` object for validating inputs. This
        can be overriden in subclasses or as an instance attribute
      * `output_schema` is a `schema.Schema` object for validating output. This
@@ -85,12 +86,12 @@ class ObjectSchema(schema.Schema):
     ObjectSchema(attr1=schema1, attr2=schema2, ...) is a schema.Schema-like
     class providing validation for the fields of a python object. To validate,
     the object must have attr1, attr2, ... as attributes, and each attribute
-    must validate with the corresponding schema. 
-    
+    must validate with the corresponding schema.
+
     Note that schema1, schema2, ... do not need to be a schema, they can be any
     valid value useful for building is schema (i.e., you can use `int` instead
     of `schema.Schema(int)`
-    
+
     """
 
     def __init__(self, **kwargs):
@@ -220,4 +221,3 @@ def feature_name(name):
         f._feature_name = name
         return f
     return decorate
-

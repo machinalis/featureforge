@@ -36,7 +36,7 @@ class FeatureFixtureCheckMixin(object):
     """
     This class is a TestCase mixin that provides some assertions to test
     features.
-    
+
     In most cases, you shouldn't use this directly but BaseFeatureFixture
     instead
     """
@@ -45,7 +45,7 @@ class FeatureFixtureCheckMixin(object):
         """
         Check that the given feature (function or Feature instance) passes
         all the conditions given in the fixture
-        
+
         `fixture` is a dictionary where each key/value pair describes a simple
         example for the feature. The key should be a string (which will be
         reported in case of failure, so you know which case failed), and the
@@ -60,7 +60,7 @@ class FeatureFixtureCheckMixin(object):
          * (input, RAISES, eclass) checks that feature(input) raises an exception of
            eclass type. Note that input/output validation always raise an exception
            that subclasses ValueError
-        
+
         """
         failures = []
         feature_spec = make_feature(feature_spec)
@@ -87,7 +87,8 @@ class FeatureFixtureCheckMixin(object):
             try:
                 feature = feature_spec(data_point)
             except Exception as e:
-                self.fail("Error evaluating; input=%r error=%r" % (data_point, e))
+                self.fail("Error evaluating; input=%r error=%r" %
+                          (data_point, e))
             try:
                 feature_spec.output_schema.validate(feature)
             except schema.SchemaError:
@@ -107,7 +108,7 @@ class BaseFeatureFixture(FeatureFixtureCheckMixin):
     of `assert_feature_passes_fixture` for more details.
 
     The class defined by this will validate all features in the fixture. It will
-    also subject the feature to fuzzy testing if the input schema allows it. 
+    also subject the feature to fuzzy testing if the input schema allows it.
     It's also possible to add additional tests to the testcase.
 
     If you want to have more control about how the fixture is applied or skip
@@ -127,7 +128,6 @@ class BaseFeatureFixture(FeatureFixtureCheckMixin):
 
 if __name__ == "__main__":
     from featureforge.feature import input_schema, output_schema
-    from schema import Schema, And
     import unittest
 
     @input_schema(str)
