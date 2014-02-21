@@ -10,61 +10,6 @@ from schema import Schema, SchemaError, Use
 logger = logging.getLogger(__name__)
 
 
-class SequenceValidator(object):
-    def __init__(self, size=None):
-        if size is None or isinstance(size, int):
-            self.size = size
-        else:
-            seq = SequenceValidator().validate(size)
-            self.size = len(seq)
-
-    def validate(self, x):
-        if not (isinstance(x, list) or isinstance(x, tuple) or
-                isinstance(x, numpy.ndarray)):
-            raise SchemaError("Sequence is not list, tuple or numpy array", [])
-        if isinstance(x, numpy.ndarray):
-            if x.dtype.kind != "f":
-                raise SchemaError("Array dtype must be float, "
-                                  "but was {}".format(x.dtype), [])
-            x = x.ravel()
-        if len(x) == 0:
-            raise ValueError("Expecting a non-empty sequence but "
-                             "got {}".format(x))
-        if self.size is not None and len(x) != self.size:
-            raise SchemaError("Expecting sequence length {} but got "
-                              "{}".format(self.size, len(x)), [])
-        if not isinstance(x, numpy.ndarray):
-            for value in x:
-                if not isinstance(value, (int, float)):
-                    raise SchemaError("Values in sequence are expected to be "
-                                      "numeric", [])
-            x = numpy.array(x, dtype=float)
-        return x
-
-    def __str__(self):
-        size = self.size
-        if size is None:
-            size = ""
-        return "SequenceValidator({})".format(size)
-
-    def __repr__(self):
-        return str(self)
-
-
-class TupleValidator(object):
-    def __init__(self, types_tuple):
-        self.tt = map(Schema, types_tuple)
-        self.N = len(self.tt)
-
-    def validate(self, x):
-        if not isinstance(x, tuple):
-            raise SchemaError("Expecting tuple, got {}".format(type(x)), [])
-        if len(x) != self.N:
-            raise SchemaError("Expecting a tuple of size {}, but got".format(
-                              self.N, len(x)), [])
-        return tuple(schema.validate(y) for y, schema in zip(x, self.tt))
-
-
 class FeatureMappingFlattener(object):
     """
     This class maps feature dicts into numpy arrays.
@@ -344,3 +289,58 @@ class FeatureMappingFlattener(object):
         logger.info("Finished flattener.fit_transform")
         logger.info("Matrix has size %sx%s" % result.shape)
         return result
+
+
+class SequenceValidator(object):
+    def __init__(self, size=None):
+        if size is None or isinstance(size, int):
+            self.size = size
+        else:
+            seq = SequenceValidator().validate(size)
+            self.size = len(seq)
+
+    def validate(self, x):
+        if not (isinstance(x, list) or isinstance(x, tuple) or
+                isinstance(x, numpy.ndarray)):
+            raise SchemaError("Sequence is not list, tuple or numpy array", [])
+        if isinstance(x, numpy.ndarray):
+            if x.dtype.kind != "f":
+                raise SchemaError("Array dtype must be float, "
+                                  "but was {}".format(x.dtype), [])
+            x = x.ravel()
+        if len(x) == 0:
+            raise ValueError("Expecting a non-empty sequence but "
+                             "got {}".format(x))
+        if self.size is not None and len(x) != self.size:
+            raise SchemaError("Expecting sequence length {} but got "
+                              "{}".format(self.size, len(x)), [])
+        if not isinstance(x, numpy.ndarray):
+            for value in x:
+                if not isinstance(value, (int, float)):
+                    raise SchemaError("Values in sequence are expected to be "
+                                      "numeric", [])
+            x = numpy.array(x, dtype=float)
+        return x
+
+    def __str__(self):
+        size = self.size
+        if size is None:
+            size = ""
+        return "SequenceValidator({})".format(size)
+
+    def __repr__(self):
+        return str(self)
+
+
+class TupleValidator(object):
+    def __init__(self, types_tuple):
+        self.tt = map(Schema, types_tuple)
+        self.N = len(self.tt)
+
+    def validate(self, x):
+        if not isinstance(x, tuple):
+            raise SchemaError("Expecting tuple, got {}".format(type(x)), [])
+        if len(x) != self.N:
+            raise SchemaError("Expecting a tuple of size {}, but got".format(
+                              self.N, len(x)), [])
+        return tuple(schema.validate(y) for y, schema in zip(x, self.tt))
