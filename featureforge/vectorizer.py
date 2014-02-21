@@ -14,7 +14,7 @@ class Vectorizer(object):
     where each vector contains the evaluation of every given feature for a
     single data point.
 
-    Numerical features are mapped to a column of the resulting matrix. 
+    Numerical features are mapped to a column of the resulting matrix.
     Enumerated features are mapped to multiple columns (one for each possible
     enumerated value), using 0 or 1 to indicate the presence of the enumerated
     value. Vectorial features are mapped to multiple columns.
@@ -30,7 +30,6 @@ class Vectorizer(object):
     for featureforge.evaluator.TolerantFeatureEvaluator
 
     """
-
 
     def __init__(self, features, tolerant=False):
         # Upgrade `features` to `Feature` instances.
