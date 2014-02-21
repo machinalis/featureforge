@@ -11,14 +11,17 @@ from featureforge.flattener import FeatureMappingFlattener
 
 
 class TestFeatureMappingFlattener(unittest.TestCase):
+    ENUM_VALUES = [u"pepsi", u"coca", "nafta"]
+
     def _get_random_tuples(self):
         for _ in xrange(100):
             t = (random.randint(0, 100),
                  random.randint(-3, 3),
                  random.random() * 10 + 5,
-                 random.choice([u"pepsi", u"coca", "nafta"]),
-                 [random.randint(0, 3) or random.random() for _ in xrange(5)]
-                )
+                 random.choice(self.ENUM_VALUES),
+                 [random.randint(0, 3) or random.random() for _ in xrange(5)],
+                 random.random(),
+                 )
             yield t
 
     def test_fit_empty(self):
@@ -59,11 +62,38 @@ class TestFeatureMappingFlattener(unittest.TestCase):
         V.fit(X)
         Z = V.transform(Y)
         n = 100
-        m = 3 + 3 + 5  # 3 float, 1 enum, 1 list
+        m = 4 + 3 + 5  # 3 float, 1 enum, 1 list
         self.assertEqual(Z.shape, (n, m))
         d = next(self._get_random_tuples())
         Z = V.transform([d])  # Test that works for one dict too
         self.assertEqual(Z.shape, (1, m))
+
+    def test_transform_produce_the_expected_values_on_the_result(self):
+        random.seed("lady smith")
+        X = self._get_random_tuples()
+        random.seed("black mambazo")
+        Y = list(self._get_random_tuples())
+        V = FeatureMappingFlattener()
+        V.fit(X)
+        Z = V.transform(Y)
+        for y, z in zip(Y, Z):
+            for i, v in enumerate(y):
+                if isinstance(v, (int, float)):
+                    vector_idx = V.indexes[(i, None)]
+                    self.assertEqual(v, z[vector_idx])
+                elif isinstance(v, basestring):
+                    # we know that there's only ENUM type, with ENUM_VALUES
+                    vector_idx = V.indexes[(i, v)]
+                    self.assertEqual(1.0, z[vector_idx])
+                    for other_value in self.ENUM_VALUES:
+                        if other_value != v:
+                            vector_idx = V.indexes[(i, other_value)]
+                            self.assertEqual(0.0, z[vector_idx])
+                else:
+                    # It's an array
+                    for j, v_j in enumerate(v):
+                        vector_idx = V.indexes[(i, j)]
+                        self.assertEqual(v_j, z[vector_idx])
 
     def test_transform_bad_values(self):
         random.seed("king of the streets")
@@ -88,7 +118,7 @@ class TestFeatureMappingFlattener(unittest.TestCase):
         V = FeatureMappingFlattener()
         Z = V.fit_transform(X)
         n = 100
-        m = 3 + 3 + 5  # 3 float, 1 enum, 1 list
+        m = 4 + 3 + 5  # 3 float, 1 enum, 1 list
         self.assertEqual(Z.shape, (n, m))
         d = next(self._get_random_tuples())
         Z = V.transform([d])  # Test that works for one dict too
