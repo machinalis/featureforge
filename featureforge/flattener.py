@@ -10,9 +10,6 @@ from schema import Schema, SchemaError, Use
 logger = logging.getLogger(__name__)
 
 
-# TODO: Integrate sparse matrix output code
-
-
 class SequenceValidator(object):
     def __init__(self, size=None):
         if size is None or isinstance(size, int):
@@ -110,6 +107,9 @@ class FeatureMappingFlattener(object):
     fitting.
     """
 
+    def __init__(self, sparse=True):
+        self.sparse = sparse
+
     def fit(self, X, y=None):
         """X must be a list, sequence or iterable of points,
         but not a single data point.
@@ -120,13 +120,19 @@ class FeatureMappingFlattener(object):
         """X must be a list, sequence or iterable points,
         but not a single data point.
         """
-        return self._wrapcall(self._transform, X)
+        if self.sparse:
+            return self._wrapcall(self._sparse_transform, X)
+        else:
+            return self._wrapcall(self._transform, X)
 
     def fit_transform(self, X, y=None):
         """X must be a list, sequence or iterable points,
         but not a single data point.
         """
-        return self._wrapcall(self._fit_transform, X)
+        if self.sparse:
+            return self._wrapcall(self._sparse_fit_transform, X)
+        else:
+            return self._wrapcall(self._fit_transform, X)
 
     def _wrapcall(self, method, X):
         try:
@@ -286,7 +292,7 @@ class FeatureMappingFlattener(object):
     def _sparse_transform(self, X):
         logger.info("Starting flattener.transform")
 
-        data = array.array("f")
+        data = array.array("d")
         indices = array.array("i")
         indptr = array.array("i", [0])
 
@@ -299,7 +305,9 @@ class FeatureMappingFlattener(object):
         if not data:
             result = numpy.zeros((0, len(self.indexes)))
         else:
-            result = csr_matrix((data, indices, indptr))
+            result = csr_matrix((data, indices, indptr),
+                                dtype=float,
+                                shape=(len(indptr) - 1, len(self.indexes)))
 
         logger.info("Finished flattener.transform")
         logger.info("Matrix has size %sx%s" % result.shape)
@@ -329,7 +337,9 @@ class FeatureMappingFlattener(object):
         if not data:
             result = numpy.zeros((0, len(self.indexes)))
         else:
-            result = csr_matrix((data, indices, indptr), dtype=float)
+            result = csr_matrix((data, indices, indptr),
+                                dtype=float,
+                                shape=(len(indptr) - 1, len(self.indexes)))
 
         logger.info("Finished flattener.fit_transform")
         logger.info("Matrix has size %sx%s" % result.shape)
