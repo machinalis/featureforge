@@ -29,16 +29,19 @@ class Vectorizer(object):
     if your data is clean or your features are correct. See the documentation
     for featureforge.evaluator.TolerantFeatureEvaluator
 
+    Vectorizer(features, sparse=True) changes the result data type, returning a
+    sparse numpy matrix instead of a dense matrix. See the documentation on
+    featureforge.flattener.Flattener
     """
 
-    def __init__(self, features, tolerant=False):
+    def __init__(self, features, tolerant=False, sparse=False):
         # Upgrade `features` to `Feature` instances.
         features = map(make_feature, features)
         if tolerant:
             self.evaluator = TolerantFeatureEvaluator(features)
         else:
             self.evaluator = FeatureEvaluator(features)
-        self.flattener = FeatureMappingFlattener()
+        self.flattener = FeatureMappingFlattener(sparse=sparse)
 
     def fit(self, X, y=None):
         Xt = self.evaluator.fit_transform(X, y)
