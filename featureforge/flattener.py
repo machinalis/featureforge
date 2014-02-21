@@ -10,64 +10,6 @@ from schema import Schema, SchemaError, Use
 logger = logging.getLogger(__name__)
 
 
-# TODO: Integrate sparse matrix output code
-
-
-class SequenceValidator(object):
-    def __init__(self, size=None):
-        if size is None or isinstance(size, int):
-            self.size = size
-        else:
-            seq = SequenceValidator().validate(size)
-            self.size = len(seq)
-
-    def validate(self, x):
-        if not (isinstance(x, list) or isinstance(x, tuple) or
-                isinstance(x, numpy.ndarray)):
-            raise SchemaError("Sequence is not list, tuple or numpy array", [])
-        if isinstance(x, numpy.ndarray):
-            if x.dtype.kind != "f":
-                raise SchemaError("Array dtype must be float, "
-                                  "but was {}".format(x.dtype), [])
-            x = x.ravel()
-        if len(x) == 0:
-            raise ValueError("Expecting a non-empty sequence but "
-                             "got {}".format(x))
-        if self.size is not None and len(x) != self.size:
-            raise SchemaError("Expecting sequence length {} but got "
-                              "{}".format(self.size, len(x)), [])
-        if not isinstance(x, numpy.ndarray):
-            for value in x:
-                if not isinstance(value, (int, float)):
-                    raise SchemaError("Values in sequence are expected to be "
-                                      "numeric", [])
-            x = numpy.array(x, dtype=float)
-        return x
-
-    def __str__(self):
-        size = self.size
-        if size is None:
-            size = ""
-        return "SequenceValidator({})".format(size)
-
-    def __repr__(self):
-        return str(self)
-
-
-class TupleValidator(object):
-    def __init__(self, types_tuple):
-        self.tt = map(Schema, types_tuple)
-        self.N = len(self.tt)
-
-    def validate(self, x):
-        if not isinstance(x, tuple):
-            raise SchemaError("Expecting tuple, got {}".format(type(x)), [])
-        if len(x) != self.N:
-            raise SchemaError("Expecting a tuple of size {}, but got".format(
-                              self.N, len(x)), [])
-        return tuple(schema.validate(y) for y, schema in zip(x, self.tt))
-
-
 class FeatureMappingFlattener(object):
     """
     This class maps feature dicts into numpy arrays.
@@ -110,6 +52,9 @@ class FeatureMappingFlattener(object):
     fitting.
     """
 
+    def __init__(self, sparse=True):
+        self.sparse = sparse
+
     def fit(self, X, y=None):
         """X must be a list, sequence or iterable of points,
         but not a single data point.
@@ -120,13 +65,19 @@ class FeatureMappingFlattener(object):
         """X must be a list, sequence or iterable points,
         but not a single data point.
         """
-        return self._wrapcall(self._transform, X)
+        if self.sparse:
+            return self._wrapcall(self._sparse_transform, X)
+        else:
+            return self._wrapcall(self._transform, X)
 
     def fit_transform(self, X, y=None):
         """X must be a list, sequence or iterable points,
         but not a single data point.
         """
-        return self._wrapcall(self._fit_transform, X)
+        if self.sparse:
+            return self._wrapcall(self._sparse_fit_transform, X)
+        else:
+            return self._wrapcall(self._fit_transform, X)
 
     def _wrapcall(self, method, X):
         try:
@@ -286,7 +237,7 @@ class FeatureMappingFlattener(object):
     def _sparse_transform(self, X):
         logger.info("Starting flattener.transform")
 
-        data = array.array("f")
+        data = array.array("d")
         indices = array.array("i")
         indptr = array.array("i", [0])
 
@@ -299,7 +250,9 @@ class FeatureMappingFlattener(object):
         if not data:
             result = numpy.zeros((0, len(self.indexes)))
         else:
-            result = csr_matrix((data, indices, indptr))
+            result = csr_matrix((data, indices, indptr),
+                                dtype=float,
+                                shape=(len(indptr) - 1, len(self.indexes)))
 
         logger.info("Finished flattener.transform")
         logger.info("Matrix has size %sx%s" % result.shape)
@@ -329,8 +282,65 @@ class FeatureMappingFlattener(object):
         if not data:
             result = numpy.zeros((0, len(self.indexes)))
         else:
-            result = csr_matrix((data, indices, indptr), dtype=float)
+            result = csr_matrix((data, indices, indptr),
+                                dtype=float,
+                                shape=(len(indptr) - 1, len(self.indexes)))
 
         logger.info("Finished flattener.fit_transform")
         logger.info("Matrix has size %sx%s" % result.shape)
         return result
+
+
+class SequenceValidator(object):
+    def __init__(self, size=None):
+        if size is None or isinstance(size, int):
+            self.size = size
+        else:
+            seq = SequenceValidator().validate(size)
+            self.size = len(seq)
+
+    def validate(self, x):
+        if not (isinstance(x, list) or isinstance(x, tuple) or
+                isinstance(x, numpy.ndarray)):
+            raise SchemaError("Sequence is not list, tuple or numpy array", [])
+        if isinstance(x, numpy.ndarray):
+            if x.dtype.kind != "f":
+                raise SchemaError("Array dtype must be float, "
+                                  "but was {}".format(x.dtype), [])
+            x = x.ravel()
+        if len(x) == 0:
+            raise ValueError("Expecting a non-empty sequence but "
+                             "got {}".format(x))
+        if self.size is not None and len(x) != self.size:
+            raise SchemaError("Expecting sequence length {} but got "
+                              "{}".format(self.size, len(x)), [])
+        if not isinstance(x, numpy.ndarray):
+            for value in x:
+                if not isinstance(value, (int, float)):
+                    raise SchemaError("Values in sequence are expected to be "
+                                      "numeric", [])
+            x = numpy.array(x, dtype=float)
+        return x
+
+    def __str__(self):
+        size = self.size
+        if size is None:
+            size = ""
+        return "SequenceValidator({})".format(size)
+
+    def __repr__(self):
+        return str(self)
+
+
+class TupleValidator(object):
+    def __init__(self, types_tuple):
+        self.tt = map(Schema, types_tuple)
+        self.N = len(self.tt)
+
+    def validate(self, x):
+        if not isinstance(x, tuple):
+            raise SchemaError("Expecting tuple, got {}".format(type(x)), [])
+        if len(x) != self.N:
+            raise SchemaError("Expecting a tuple of size {}, but got".format(
+                              self.N, len(x)), [])
+        return tuple(schema.validate(y) for y, schema in zip(x, self.tt))
