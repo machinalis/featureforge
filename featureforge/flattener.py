@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
 import logging
-import numpy
+import array
 
+import numpy
+from scipy.sparse import csr_matrix
 from schema import Schema, SchemaError, Use
 
+
 logger = logging.getLogger(__name__)
+
+
+# TODO: Integrate sparse matrix output code
 
 
 class SequenceValidator(object):
@@ -104,7 +110,7 @@ class FeatureMappingFlattener(object):
     fitting.
     """
 
-    def fit(self, X, y=None):  # `y` is to comply with sklearn estimator
+    def fit(self, X, y=None):
         """X must be a list, sequence or iterable of points,
         but not a single data point.
         """
@@ -256,6 +262,74 @@ class FeatureMappingFlattener(object):
             result = numpy.zeros((0, N))
         else:
             result = numpy.concatenate(matrix)
+
+        logger.info("Finished flattener.fit_transform")
+        logger.info("Matrix has size %sx%s" % result.shape)
+        return result
+
+    def _sparse_transform_step(self, datapoint):
+        for i, data in enumerate(datapoint):
+            if isinstance(data, float):
+                j = self.indexes[(i, None)]
+                yield j, data
+            elif isinstance(data, basestring):
+                if (i, data) in self.indexes:
+                    j = self.indexes[(i, data)]
+                    yield j, 1.0
+            else:
+                j = self.indexes[(i, 0)]
+                assert self.indexes[(i, len(data) - 1)] == \
+                       j + len(data) - 1
+                for k, data_k in enumerate(data):
+                    yield j + k, data_k
+
+    def _sparse_transform(self, X):
+        logger.info("Starting flattener.transform")
+
+        data = array.array("f")
+        indices = array.array("i")
+        indptr = array.array("i", [0])
+
+        for datapoint in self._iter_valid(X):
+            for i, value in self._sparse_transform_step(datapoint):
+                data.append(value)
+                indices.append(i)
+            indptr.append(len(data))
+
+        if not data:
+            result = numpy.zeros((0, len(self.indexes)))
+        else:
+            result = csr_matrix((data, indices, indptr))
+
+        logger.info("Finished flattener.transform")
+        logger.info("Matrix has size %sx%s" % result.shape)
+        return result
+
+    def _sparse_fit_transform(self, X):
+        X = iter(X)
+        try:
+            first = next(X)
+        except (TypeError, StopIteration):
+            raise ValueError("Cannot fit with an empty dataset")
+        logger.info("Starting flattener.fit_transform")
+
+        self._fit_first(first)
+
+        data = array.array("d")
+        indices = array.array("i")
+        indptr = array.array("i", [0])
+
+        for datapoint in self._iter_valid(X, first=first):
+            self._fit_step(datapoint)
+            for i, value in self._sparse_transform_step(datapoint):
+                data.append(value)
+                indices.append(i)
+            indptr.append(len(data))
+
+        if not data:
+            result = numpy.zeros((0, len(self.indexes)))
+        else:
+            result = csr_matrix((data, indices, indptr), dtype=float)
 
         logger.info("Finished flattener.fit_transform")
         logger.info("Matrix has size %sx%s" % result.shape)

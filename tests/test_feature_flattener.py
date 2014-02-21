@@ -7,6 +7,10 @@ import numpy
 from featureforge.flattener import FeatureMappingFlattener
 
 
+#TODO: Test that matrix output has expected values
+#TODO: Test that fit_transform works with one pass of the input
+
+
 class TestFeatureMappingFlattener(unittest.TestCase):
     def _get_random_tuples(self):
         for _ in xrange(100):
@@ -131,3 +135,17 @@ class TestFeatureMappingFlattener(unittest.TestCase):
         self.assertTrue(numpy.array_equal(YA, YB))
         self.assertEqual(A.indexes, B.indexes)
         self.assertEqual(A.reverse, B.reverse)
+
+    def test_sparse_is_equivalent(self):
+        random.seed("jingle dingle")
+        X = list(self._get_random_tuples())
+
+        # fit + transform
+        A = FeatureMappingFlattener()
+        YA = A._sparse_fit_transform(X).todense()
+        
+        # fit_transform
+        B = FeatureMappingFlattener()
+        YB = B.fit_transform(X)
+
+        self.assertTrue(numpy.array_equal(YA, YB))
