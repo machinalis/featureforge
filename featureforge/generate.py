@@ -51,6 +51,8 @@ VALUE_GENERATORS = {
 
 def generate(sch, max_tries=200, ensure_valid=True):
     s = sch._schema
+    while isinstance(s, schema.Schema):
+        s = s._schema
     # Not using isinstance, because schema doesn't
     T = type(s)
     if T in (list, tuple, set, frozenset):
@@ -74,10 +76,7 @@ def generate(sch, max_tries=200, ensure_valid=True):
         valid = False
         tries_left = max_tries
         while not valid and tries_left > 0:
-            first = s._args[0]
-            if not isinstance(first, schema.Schema):
-                first = schema.Schema(first)
-            candidate = generate(first, max_tries)
+            candidate = generate(schema.Schema(s._args[0]), max_tries)
             try:
                 result = s.validate(candidate)
                 valid = True
