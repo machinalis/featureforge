@@ -1,0 +1,6 @@
+recursive-include docs *.rst Makefile
+recursive-include featureforge *.py
+recursive-include tests *.py
+include LICENSE
+include MANIFEST.in
+include README.rst

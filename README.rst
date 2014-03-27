@@ -1,4 +1,5 @@
-# Feature Forge
+Feature Forge
+=============
 
 This library provides a set of tools that can be useful in many machine
 learning applications (classification, clustering, regression, etc.), and
@@ -18,13 +19,15 @@ preprocessing. Feature Forge helps you with:
    matrix. The evaluator has a robust mode that allows you some tolerance both
    for invalid data and buggy features.
 
-## Documentation
+Documentation
+-------------
 
 Documentation is available at http://feature-forge.readthedocs.org/en/latest/
 
-## Contact information
+Contact information
+-------------------
 
-Feature Forge is © 2014 [Machinalis](http://www.machinalis.com/). Its primary
+Feature Forge is © 2014 Machinalis (http://www.machinalis.com/). Its primary
 authors are:
 
  * Javier Mansilla <jmansilla@machinalis.com> (jmansilla at github)
@@ -34,6 +37,7 @@ authors are:
 Any contributions or suggestions are welcome, the official channel for this is
 submitting github pull requests or issues.
 
-## Changelog
+Changelog
+---------
 
-0.1 Initial release
+0.1: Initial release
