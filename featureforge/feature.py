@@ -28,25 +28,27 @@ def soft_schema(**kwargs):
 class Feature(object):
     """
     Feature instances represent a single feature. This class is never
-    instantiated as is; you build an instance using make_feature on a decorated
-    function, or you define a subclass and instantiate that.
+    instantiated as is; you build an instance using make_feature on a
+    decorated function, or you define a subclass and instantiate that.
 
-    The instance has a callable interface, taking a data point and returning a
-    feature value. The typical use case is overriding the `_evaluate` method and
-    leaving the standard `__call__` in place (which wraps `_evaluate` adding
-    input and output validation)
+    The instance has a callable interface, taking a data point and
+    returning a feature value. The typical use case is overriding the
+    `_evaluate` method and leaving the standard `__call__` in place
+    (which wraps `_evaluate` adding input and output validation)
 
     Besides the `__call__` methods, the following class attributes are
     available:
 
-     * `input_schema` is a `schema.Schema` object for validating inputs. This
-       can be overriden in subclasses or as an instance attribute
-     * `output_schema` is a `schema.Schema` object for validating output. This
-       can be overriden in subclasses or as an instance attribute
-     * `InputValueError` is an exception class raised when input fails to
-       validate; it is a subclass of `ValueError`
-     * `OutputValueError` is an exception class raised when output fails to
-       validate; it is a subclass of `ValueError`
+     * `input_schema` is a `schema.Schema` object for validating
+       inputs. This can be overriden in subclasses or as an instance
+       attribute
+     * `output_schema` is a `schema.Schema` object for validating
+       output. This can be overriden in subclasses or as an instance
+       attribute
+     * `InputValueError` is an exception class raised when input fails
+       to validate; it is a subclass of `ValueError`
+     * `OutputValueError` is an exception class raised when output
+       fails to validate; it is a subclass of `ValueError`
     """
 
     input_schema = schema.Schema(object)

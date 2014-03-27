@@ -54,12 +54,13 @@ class FeatureFixtureCheckMixin(object):
         value give the condition, and should be one of the following:
 
          * (input, EQ, value) checks that feature(input) == value
-         * (input, APPROX, value) checks that feature(input) == value approximately
-           the error allowed is given by the constant EPSILON in this module
+         * (input, APPROX, value) checks that feature(input) == value
+           approximately the error allowed is given by the constant EPSILON in
+           this module
          * (input, IN, values) checks that feature(input) in values
-         * (input, RAISES, eclass) checks that feature(input) raises an exception of
-           eclass type. Note that input/output validation always raise an exception
-           that subclasses ValueError
+         * (input, RAISES, eclass) checks that feature(input) raises an
+           exception of eclass type. Note that input/output validation always
+           raise an exception that subclasses ValueError
 
         """
         failures = []
@@ -107,9 +108,9 @@ class BaseFeatureFixture(FeatureFixtureCheckMixin):
     `fixture` has a list of cases to test; check the documentation
     of `assert_feature_passes_fixture` for more details.
 
-    The class defined by this will validate all features in the fixture. It will
-    also subject the feature to fuzzy testing if the input schema allows it.
-    It's also possible to add additional tests to the testcase.
+    The class defined by this will validate all features in the fixture. It
+    will also subject the feature to fuzzy testing if the input schema allows
+    it. It's also possible to add additional tests to the testcase.
 
     If you want to have more control about how the fixture is applied or skip
     fuzzy testing, take a look at the FeatureFixtureCheckMixin.

@@ -88,6 +88,7 @@ class SimpleEvaluatorTests(TestCase):
 
 class TolerantFittingCases(object):
     fit_method_name = ''
+
     def apply_fit(self, *args, **kwargs):
         method = getattr(self.ev, self.fit_method_name)
         return method(*args, **kwargs)
@@ -154,16 +155,16 @@ class TolerantFittingCases(object):
         no_age = {'description': u'i have'}
         bad_sample = {'nothing': u'this sample has no description, not age'}
         samples = [bad_sample, no_age]
-        # Since the 2nd sample will succeed when evaluated on DescriptionFeature
-        # but fail when evaluated with AgeFeature, we want to check if at the
-        # end the AgeFeature is alive or not. If not, it's because it suffered
-        # 2 failures, so the bad_sample wasn't hidden.
+        # Since the 2nd sample will succeed when evaluated on
+        # DescriptionFeature but fail when evaluated with AgeFeature, we want
+        # to check if at the end the AgeFeature is alive or not. If not, it's
+        # because it suffered 2 failures, so the bad_sample wasn't hidden.
         self.apply_fit(samples)
         # Checking the preconditions of our test
         assert DescriptionFeature in self.ev.alive_features
         self.assertIn(AgeFeature, self.ev.alive_features)
 
-    def test_when_a_feature_is_excluded_a_discarded_sample_is_reconsidered(self):
+    def test_when_feature_is_excluded_discarded_sample_is_reconsidered(self):
         self.ev = TolerantFeatureEvaluator([DescriptionFeature, AgeFeature,
                                             DumbFeatureA])
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
@@ -214,7 +215,7 @@ class TolerantEvaluatorFitTransformTests(TestCase, TolerantFittingCases):
             self.assertEqual(len(r), 1)  # only one value per sample
             self.assertEqual(r[0], 'a')  # Remember DumbFeatureA returns 'a'
 
-    def test_when_feature_is_excluded_its_discarded_samples_are_reevalued(self):
+    def test_when_feature_is_excluded_discarded_samples_are_reevaluated(self):
         self.ev = TolerantFeatureEvaluator([DescriptionFeature, DumbFeatureA,
                                             EntireSampleFeature])
         self.ev.FEATURE_MAX_ERRORS_ALLOWED = 0  # No feature failure tolerated
@@ -238,6 +239,7 @@ class TolerantEvaluatorTransformTests(TestCase):
     def test_errors_are_raised(self):
         self.ev = TolerantFeatureEvaluator([BrokenFeature, DumbFeatureA])
         self.ev.fit([])
+
         def transform():
             list(self.ev.transform(SAMPLES))  # force generation
         self.assertRaises(RuntimeError, transform)
