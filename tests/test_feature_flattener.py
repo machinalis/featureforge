@@ -35,7 +35,8 @@ class TestFeatureMappingFlattener(unittest.TestCase):
         V = FeatureMappingFlattener()
         V.fit(X)
         V = FeatureMappingFlattener()
-        V.fit([next(self._get_random_tuples())])  # Test that works for one dict
+        # Check that works for one dict
+        V.fit([next(self._get_random_tuples())])
 
     def test_fit_bad_values(self):
         random.seed("the alphabet city elite")

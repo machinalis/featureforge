@@ -27,7 +27,9 @@ class FeatureEvaluator(object):
 
 
 class TolerantFeatureEvaluator(object):
-    """Feature Evaluator that tolerates broken features or samples when fitting.
+    """Feature Evaluator that tolerates broken features or samples when
+     fitting.
+
      Tolerance to failures (only done during fit or fit_transform):
      a) Samples are always discarded when failing:
          If a given sample fails when evaluating a feature with it, no matter
@@ -62,7 +64,8 @@ class TolerantFeatureEvaluator(object):
         self.alive_features = self.features[:]
 
         dataset = X
-        last_sample_idx = -1  # Caution to not work in strict mode when retrying
+        # Caution to not work in strict mode when retrying
+        last_sample_idx = -1
         while dataset:
             self._samples_to_retry = []
             for i, d in enumerate(dataset, last_sample_idx + 1):
@@ -86,7 +89,8 @@ class TolerantFeatureEvaluator(object):
     def fit_transform(self, X, y=None):
         # Very similar to fit alone, but buffers samples evaluation for two
         # reasons:
-        #   - simply because this is also a transform, so we need to return that
+        #   - simply because this is also a transform, so we need to
+        #     return that
         #   - to be able to patch them if at some given point a Feature that
         #     was working is killed.
         self._fit_failure_stats = {
@@ -97,7 +101,8 @@ class TolerantFeatureEvaluator(object):
         result = []
 
         dataset = X
-        last_sample_idx = -1  # Caution to not work in strict mode when retrying
+        # Caution to not work in strict mode when retrying
+        last_sample_idx = -1
         while dataset:
             self._samples_to_retry = []
             for i, d in enumerate(dataset, last_sample_idx + 1):
