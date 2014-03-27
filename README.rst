@@ -19,6 +19,11 @@ preprocessing. Feature Forge helps you with:
    matrix. The evaluator has a robust mode that allows you some tolerance both
    for invalid data and buggy features.
 
+Installation
+------------
+
+Just `pip install featureforge`.
+
 Documentation
 -------------
 

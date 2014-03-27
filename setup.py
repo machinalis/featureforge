@@ -16,6 +16,8 @@ setup(
     description="A library to build and test machine learning features",
     long_description=long_description,
     author="Rafael Carrascosa, Daniel Moisset, Javier Mansilla",
+    author_email="rcarrascosa@machinalis.com",
+    url="https://github.com/machinalis/featureforge",
     packages=[
         "featureforge",
     ],
