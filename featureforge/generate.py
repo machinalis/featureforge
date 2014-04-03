@@ -1,7 +1,7 @@
 from datetime import datetime
 import random
 
-from future.builtins import range
+from future.builtins import range, str
 import schema
 import string
 
@@ -45,7 +45,6 @@ VALUE_GENERATORS = {
     str: generate_str,
     float: generate_float,
     bool: generate_bool,
-    unicode: lambda: unicode(generate_str()),
     datetime: generate_datetime,
     dict: generate_dict
 }

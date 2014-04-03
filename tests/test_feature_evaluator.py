@@ -1,3 +1,4 @@
+from future.builtins import str
 import mock
 import types
 from unittest import TestCase
@@ -8,7 +9,7 @@ from featureforge.feature import make_feature, input_schema, output_schema
 
 @make_feature
 @input_schema(dict)
-@output_schema(unicode)
+@output_schema(str)
 def DumbFeatureA(data_point):
     return u'a'
 
@@ -21,22 +22,22 @@ def EntireSampleFeature(data_point):
 
 
 @make_feature
-@input_schema({'description': unicode})
-@output_schema(unicode)
+@input_schema({'description': str})
+@output_schema(str)
 def DescriptionFeature(data_point):
     return data_point['description']
 
 
 @make_feature
 @input_schema({'age': int})
-@output_schema(unicode)
+@output_schema(str)
 def AgeFeature(data_point):
     return data_point['age']
 
 
 @make_feature
-@input_schema({'description': unicode})
-@output_schema(unicode)
+@input_schema({'description': str})
+@output_schema(str)
 def BrokenFeature(data_point):
     raise RuntimeError()
 
