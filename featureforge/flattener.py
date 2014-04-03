@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-import logging
 import array
+import logging
 
+from future.builtins import range
 import numpy
-from scipy.sparse import csr_matrix
 from schema import Schema, SchemaError, Use
+from scipy.sparse import csr_matrix
 
 
 logger = logging.getLogger(__name__)
@@ -146,7 +147,7 @@ class FeatureMappingFlattener(object):
                 self.str_tuple_indexes.append(i)
             else:
                 type_ = SequenceValidator(data)
-                for j in xrange(type_.size):
+                for j in range(type_.size):
                     self._add_column(i, j)
             self.schema[i] = type_
         assert None not in self.schema

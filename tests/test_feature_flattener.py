@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-import unittest
 import random
+import unittest
+
+from future.builtins import range
 
 import numpy
 import scipy
@@ -15,12 +17,12 @@ class TestFeatureMappingFlattener(unittest.TestCase):
     ENUM_VALUES = [u"pepsi", u"coca", "nafta"]
 
     def _get_random_tuples(self):
-        for _ in xrange(100):
+        for _ in range(100):
             t = (random.randint(0, 100),
                  random.randint(-3, 3),
                  random.random() * 10 + 5,
                  random.choice(self.ENUM_VALUES),
-                 [random.randint(0, 3) or random.random() for _ in xrange(5)],
+                 [random.randint(0, 3) or random.random() for _ in range(5)],
                  random.random(),
                  )
             yield t
