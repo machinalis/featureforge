@@ -24,7 +24,7 @@ class FeatureMappingFlattener(object):
         (
             ...
             3,         # Any int (or float)
-            u"value",  # Any string (str or unicode)
+            u"value",  # Any string (str on py3, unicode on py2)
             [1, 5, 9]  # A list of integers (or floats)
             ...
         )
