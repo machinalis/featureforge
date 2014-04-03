@@ -2,7 +2,7 @@
 import array
 import logging
 
-from future.builtins import range
+from future.builtins import map, range
 import numpy
 from schema import Schema, SchemaError, Use
 from scipy.sparse import csr_matrix
@@ -371,7 +371,7 @@ class SequenceValidator(object):
 
 class TupleValidator(object):
     def __init__(self, types_tuple):
-        self.tt = map(Schema, types_tuple)
+        self.tt = tuple(map(Schema, types_tuple))
         self.N = len(self.tt)
 
     def validate(self, x):

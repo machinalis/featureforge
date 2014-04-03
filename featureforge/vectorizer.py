@@ -1,5 +1,7 @@
 import logging
 
+from future.builtins import map
+
 from featureforge.evaluator import FeatureEvaluator, TolerantFeatureEvaluator
 from featureforge.feature import make_feature
 from featureforge.flattener import FeatureMappingFlattener
@@ -36,7 +38,7 @@ class Vectorizer(object):
 
     def __init__(self, features, tolerant=False, sparse=False):
         # Upgrade `features` to `Feature` instances.
-        features = map(make_feature, features)
+        features = list(map(make_feature, features))
         if tolerant:
             self.evaluator = TolerantFeatureEvaluator(features)
         else:
