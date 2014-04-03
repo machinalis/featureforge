@@ -70,7 +70,7 @@ class SimpleEvaluatorTests(TestCase):
         ev = FeatureEvaluator(features)
         ev.fit(SAMPLES)
         Xt = ev.transform(SAMPLES)
-        x = Xt.next()
+        x = next(Xt)
         self.assertIsInstance(x, tuple)
         self.assertEqual(len(x), len(features))
 

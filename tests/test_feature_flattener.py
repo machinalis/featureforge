@@ -2,7 +2,7 @@
 import random
 import unittest
 
-from future.builtins import range
+from future.builtins import range, str
 
 import numpy
 import scipy
@@ -14,7 +14,7 @@ from featureforge.flattener import FeatureMappingFlattener
 
 
 class TestFeatureMappingFlattener(unittest.TestCase):
-    ENUM_VALUES = [u"pepsi", u"coca", "nafta"]
+    ENUM_VALUES = [u"pepsi", u"coca", u"nafta"]
 
     def _get_random_tuples(self):
         for _ in range(100):
@@ -101,7 +101,7 @@ class TestFeatureMappingFlattener(unittest.TestCase):
                 if isinstance(v, (int, float)):
                     vector_idx = V.indexes[(i, None)]
                     self.assertEqual(v, z[vector_idx])
-                elif isinstance(v, basestring):
+                elif isinstance(v, str):
                     # we know that there's only ENUM type, with ENUM_VALUES
                     vector_idx = V.indexes[(i, v)]
                     self.assertEqual(1.0, z[vector_idx])
