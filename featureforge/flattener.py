@@ -23,9 +23,10 @@ class FeatureMappingFlattener(object):
     A feature tuple is a regular python tuple of the shape:
         (
             ...
-            3,         # Any int (or float)
-            u"value",  # Any string (str on py3, unicode on py2)
-            [1, 5, 9]  # A list of integers (or floats)
+            3,                                # Any int (or float)
+            u"value",                         # Any string (str on py3, unicode on py2)
+            set(["value_1", "value_2", ...])  # A set of strings
+            [1, 5, 9]                         # A list of integers (or floats)
             ...
         )
 
@@ -33,6 +34,7 @@ class FeatureMappingFlattener(object):
         - int/float
         - str/unicode: Are meant to be enumerated types and are one-hot
           encoded.
+        - set of str/unicode: Are meant to be bag-of-words
         - list/tuple/array of integers/floats: A convenience method to pack
           several numbers togheter but otherwise equivalent to inserting each
           value into the feature tuple.
@@ -43,7 +45,7 @@ class FeatureMappingFlattener(object):
         - The dimension of the output matrix' rows are calculated.
         - A mapping between tuple indexes and output row indexes is fixed.
         - A schema of the data for validation is inferred.
-        - One-hot encoding values are learned.
+        - One-hot encoding and bad-of-words values are learned.
         - Validation is applied to the data being fitted.
 
     Validation checks:
