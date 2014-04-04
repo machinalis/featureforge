@@ -1,6 +1,9 @@
+from future.builtins import range
+import schema
+
 from featureforge import generate
 from featureforge.feature import make_feature
-import schema
+
 
 EQ = 'EQ'
 APPROX = 'APPROX'
@@ -83,7 +86,7 @@ class FeatureFixtureCheckMixin(object):
         output schema.
         """
         feature_spec = make_feature(feature_spec)
-        for i in xrange(tries):
+        for i in range(tries):
             data_point = generate.generate(feature_spec.input_schema)
             try:
                 feature = feature_spec(data_point)

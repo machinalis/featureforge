@@ -100,7 +100,7 @@ class ObjectSchema(schema.Schema):
         self.attrs = kwargs
 
     def __repr__(self):
-        attributes = ("%s=%s" % (n, repr(s)) for (n, s) in self.attrs.items())
+        attributes = ("%s=%s" % (n, repr(s)) for (n, s) in sorted(self.attrs.items()))
         return '%s(%s)' % (type(self).__name__, ', '.join(attributes))
 
     def validate(self, data):

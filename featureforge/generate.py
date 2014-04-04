@@ -1,5 +1,7 @@
 from datetime import datetime
 import random
+
+from future.builtins import range, str
 import schema
 import string
 
@@ -30,10 +32,10 @@ def generate_datetime():
 
 def generate_dict():
     result = {}
-    keys_nr = random.choice(xrange(1, 6))
+    keys_nr = random.choice(range(1, 6))
     # we dont want infitite recursion
     value_factories = [f for t, f in VALUE_GENERATORS.items() if t is not dict]
-    for idx in xrange(keys_nr):
+    for idx in range(keys_nr):
         key = generate_str()
         result[key] = random.choice(value_factories)()
     return result
@@ -43,7 +45,6 @@ VALUE_GENERATORS = {
     str: generate_str,
     float: generate_float,
     bool: generate_bool,
-    unicode: lambda: unicode(generate_str()),
     datetime: generate_datetime,
     dict: generate_dict
 }
@@ -57,7 +58,7 @@ def generate(sch, max_tries=200, ensure_valid=True):
     T = type(s)
     if T in (list, tuple, set, frozenset):
         count = random.randrange(0, MAX_LEN)
-        items = [generate(schema.Schema(schema.Or(*s)), max_tries) for _ in xrange(count)]
+        items = [generate(schema.Schema(schema.Or(*s)), max_tries) for _ in range(count)]
         result = T(items)
     elif T is dict:
         result = {}
@@ -194,7 +195,7 @@ def _mutate(value):
 
 def generate_invalid(sch, iterations=10):
     feature = generate(sch, 1, ensure_valid=False)
-    for change in xrange(iterations):
+    for change in range(iterations):
         try:
             feature = sch.validate(feature)
             # If we're here, feature is still valid. Mutate

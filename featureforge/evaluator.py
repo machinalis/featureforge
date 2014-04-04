@@ -110,7 +110,7 @@ class TolerantFeatureEvaluator(object):
                 for feature in self.alive_features[:]:
                     try:
                         r.append(feature(d))
-                    except Exception, e:
+                    except Exception as e:
                         self.process_failure(result, e, feature, d, i)
                         break
                 else:
