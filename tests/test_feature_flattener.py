@@ -169,7 +169,7 @@ class TestFeatureMappingFlattener(unittest.TestCase):
             # Typical fit failures
             self.assertRaises(ValueError, V.fit_transform, [tuple()])
             self.assertRaises(ValueError, V.fit_transform, [({},)])
-            self.assertRaises(ValueError, V.fit_transform, [([],)])
+            self.assertRaises(ValueError, V.fit_transform, [([1], u"a"), ([], u"a")])
             self.assertRaises(ValueError, V.fit_transform, [(random,)])
             self.assertRaises(ValueError, V.fit_transform, [([1, u"a"],)])
             self.assertRaises(ValueError, V.fit_transform, [("a",), (1,)])
@@ -245,12 +245,13 @@ class TestBagOfWordsFlatting(unittest.TestCase):
         # at least once
         yield (list(self.PEOPLE), set(self.COLORS))
 
-    def make_set_every_list(self, X):
+    def make_every_list(self, X, what):
+        # what must be a type, like set or tuple
         for x in X:
             xt = []
             for xi in x:
                 if isinstance(xi, list):
-                    xt.append(set(xi))
+                    xt.append(what(xi))
                 else:
                     xt.append(xi)
             yield tuple(xt)
@@ -258,35 +259,35 @@ class TestBagOfWordsFlatting(unittest.TestCase):
     def check_fit_ok_list_or_set(self, X):
         V = FeatureMappingFlattener()
         V.fit(X)
-        V = FeatureMappingFlattener()
-        V.fit(list(self.make_set_every_list(X)))
+        V.fit(list(self.make_every_list(X, set)))
+        V.fit(list(self.make_every_list(X, tuple)))
 
     def check_fit_fails_list_or_set(self, X):
         V = FeatureMappingFlattener()
         self.assertRaises(ValueError, V.fit, X)
-        V = FeatureMappingFlattener()
-        self.assertRaises(ValueError, V.fit, list(self.make_set_every_list(X)))
+        self.assertRaises(ValueError, V.fit, list(self.make_every_list(X, set)))
+        self.assertRaises(ValueError, V.fit, list(self.make_every_list(X, tuple)))
 
-    def test_fit_ok_a_tuple_element_with_set_or_list_of_strings(self):
+    def test_fit_ok_a_tuple_element_with_seq_of_strings(self):
         X = [([u'one', u'two'], ),
              ([u'four', u'two', u'four'], )
              ]
         self.check_fit_ok_list_or_set(X)
 
-    def test_fit_ok_a_tuple_element_with_list_or_set_of_hashables(self):
+    def test_fit_ok_a_tuple_element_with_seq_of_hashables(self):
         X = [(self.PEOPLE[:2], ),
              (self.PEOPLE[:], )
              ]
         self.check_fit_ok_list_or_set(X)
 
-    def test_fit_fails_when_tuple_element_is_a_mixed_list_or_set(self):
+    def test_fit_fails_when_tuple_element_is_a_mixed(self):
         X = [([u'one', self.PEOPLE[0]], ),
              ([u'four', self.PEOPLE[3], u'four'], )
              ]
         self.check_fit_fails_list_or_set(X)
 
-    def test_fit_fails_when_tuple_element_when_not_uniform_list_or_set(self):
-        # First is for people, later for strings...
+    def test_fit_fails_when_tuple_element_when_not_uniform(self):
+        # First is for people, later for strings... That's not good.
         X = [(self.PEOPLE[:2], ),
              ([u'four', u'two', u'four'], )
              ]
@@ -297,4 +298,3 @@ class TestBagOfWordsFlatting(unittest.TestCase):
              (set([4.0, 2.2, 4.0]), )
              ]
         self.check_fit_fails_list_or_set(X)
-
