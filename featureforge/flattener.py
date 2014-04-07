@@ -23,10 +23,10 @@ class FeatureMappingFlattener(object):
     A feature tuple is a regular python tuple of the shape:
         (
             ...
-            3,                                # Any int (or float)
-            u"value",                         # Any string (str on py3, unicode on py2)
-            set(["value_1", "value_2", ...])  # A set of strings
-            [1, 5, 9]                         # A list of integers (or floats)
+            3,                        # Any int (or float)
+            u"value",                 # Any string (str on py3, unicode on py2)
+            [u"value_1", u"value_2"]  # A set or list of hashable (of same type)
+            [1, 5, 9]                 # A list of integers (or floats)
             ...
         )
 
@@ -34,7 +34,7 @@ class FeatureMappingFlattener(object):
         - int/float
         - str/unicode: Are meant to be enumerated types and are one-hot
           encoded.
-        - set of str/unicode: Are meant to be bag-of-words
+        - set or list of str/unicode: Are meant to be bag-of-words
         - list/tuple/array of integers/floats: A convenience method to pack
           several numbers togheter but otherwise equivalent to inserting each
           value into the feature tuple.
@@ -130,7 +130,7 @@ class FeatureMappingFlattener(object):
 
     def _fit_first(self, first):
         # Check for a tuples of numbers, strings or "sequences".
-        schema = Schema((int, float, str, SequenceValidator()))
+        schema = Schema((int, float, str, NumberSequenceValidator()))
         schema.validate(first)
         if not first:
             raise ValueError("Cannot fit with no empty features")
@@ -148,7 +148,7 @@ class FeatureMappingFlattener(object):
                 type_ = str  # One-hot encoded indexes are added last
                 self.str_tuple_indexes.append(i)
             else:
-                type_ = SequenceValidator(data)
+                type_ = NumberSequenceValidator(data)
                 for j in range(type_.size):
                     self._add_column(i, j)
             self.schema[i] = type_
@@ -330,12 +330,12 @@ class FeatureMappingFlattener(object):
         return result
 
 
-class SequenceValidator(object):
+class NumberSequenceValidator(object):
     def __init__(self, size=None):
         if size is None or isinstance(size, int):
             self.size = size
         else:
-            seq = SequenceValidator().validate(size)
+            seq = NumberSequenceValidator().validate(size)
             self.size = len(seq)
 
     def validate(self, x):
@@ -365,7 +365,7 @@ class SequenceValidator(object):
         size = self.size
         if size is None:
             size = ""
-        return "SequenceValidator({})".format(size)
+        return "NumberSequenceValidator({})".format(size)
 
     def __repr__(self):
         return str(self)
