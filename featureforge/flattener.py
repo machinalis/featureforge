@@ -34,7 +34,7 @@ class FeatureMappingFlattener(object):
         - int/float
         - str/unicode: Are meant to be enumerated types and are one-hot
           encoded.
-        - set or list of str/unicode: Are meant to be bag-of-words
+        - set or list of str/unicode or hashables: Are meant to be bag-of-words
         - list/tuple/array of integers/floats: A convenience method to pack
           several numbers togheter but otherwise equivalent to inserting each
           value into the feature tuple.
@@ -129,9 +129,11 @@ class FeatureMappingFlattener(object):
             self.reverse.append(key)
 
     def _fit_first(self, first):
-        # Check for a tuples of numbers, strings or "sequences".
-        schema = Schema((int, float, str, NumberSequenceValidator()))
+        # Check for a tuples of numbers, strings or "sequences" or "bags".
+        schema = Schema((int, float, str, NumberSequenceValidator(),
+                         BagValidator()))
         schema.validate(first)
+
         if not first:
             raise ValueError("Cannot fit with no empty features")
 
@@ -140,6 +142,7 @@ class FeatureMappingFlattener(object):
         self.reverse = []  # Matrix column to tuple index mapping
         self.schema = [None] * len(first)
         self.str_tuple_indexes = []
+        self.bag_indexes = []
         for i, data in enumerate(first):
             if isinstance(data, (int, float)):
                 type_ = Use(float)  # ints and floats are all mapped to float
@@ -148,9 +151,21 @@ class FeatureMappingFlattener(object):
                 type_ = str  # One-hot encoded indexes are added last
                 self.str_tuple_indexes.append(i)
             else:
-                type_ = NumberSequenceValidator(data)
-                for j in range(type_.size):
-                    self._add_column(i, j)
+                # It's an iterable, maybe of numbers, maybe of hashables.
+                # Given that we don't allow empty number-sequences, if empty
+                # we'll consider it's a Bag. Otherwise, we'll grab any element
+                # and if it's not a number we'll consider it again as a Bag.
+                if len(data) != 0:
+                    elem = list(data)[0]  # sets are not indexable.
+                else:
+                    elem = None  # Will evaluate as Not-number, which is fine.
+                if type(elem) in (int, float):
+                    type_ = NumberSequenceValidator(data)
+                    for j in range(type_.size):
+                        self._add_column(i, j)
+                else:
+                    type_ = BagValidator(data)
+                    self.bag_indexes.append(i)
             self.schema[i] = type_
         assert None not in self.schema
         self.schema = tuple(self.schema)
@@ -159,6 +174,11 @@ class FeatureMappingFlattener(object):
     def _fit_step(self, datapoint):
         for i in self.str_tuple_indexes:
             self._add_column(i, datapoint[i])
+        for i in self.bag_indexes:
+            # no matter if it's a list, a tuple or a set, we need to
+            # register each value only once
+            for elem in set(datapoint[i]):
+                self._add_column(i, elem)
 
     def _iter_valid(self, X, first=None):
         if first is not None:
@@ -177,7 +197,8 @@ class FeatureMappingFlattener(object):
         # Build basic schema
         self._fit_first(first)
 
-        if self.str_tuple_indexes:  # Is there anything to one-hot encode ?
+        if self.str_tuple_indexes or self.bag_indexes:
+            # Is there anything to one-hot encode or bag-of-words encode?
             # See all datapoints looking for one-hot encodeable feature values
             for datapoint in self._iter_valid(X, first=first):
                 self._fit_step(datapoint)
@@ -331,12 +352,12 @@ class FeatureMappingFlattener(object):
 
 
 class NumberSequenceValidator(object):
-    def __init__(self, size=None):
-        if size is None or isinstance(size, int):
-            self.size = size
-        else:
-            seq = NumberSequenceValidator().validate(size)
+    def __init__(self, sample_data_point=None):
+        if sample_data_point:
+            seq = NumberSequenceValidator().validate(sample_data_point)
             self.size = len(seq)
+        else:
+            self.size = None
 
     def validate(self, x):
         if not (isinstance(x, list) or isinstance(x, tuple) or
@@ -366,6 +387,34 @@ class NumberSequenceValidator(object):
         if size is None:
             size = ""
         return "NumberSequenceValidator({})".format(size)
+
+    def __repr__(self):
+        return str(self)
+
+
+class BagValidator(object):
+
+    def __init__(self, sample_data_point=None):
+        # Computes elem_type from sample data point.
+        self.elem_type = None
+        if sample_data_point:
+            # We'll infer type from the data point
+            self.validate(sample_data_point)
+            #self.elem_type = type(list(sample_data_point)[0])
+
+    def validate(self, x):
+        if not isinstance(x, (list, set, tuple)):
+            raise SchemaError("Sequence is not list, tuple nor set", [])
+        if x and not self.elem_type:
+            self.elem_type = type(list(x)[0])
+        if not all(isinstance(x_i, self.elem_type) for x_i in x):
+            raise SchemaError("Expecting all elements to be {} but got "
+                              "{}".format(self.elements, type(x_i)), [])
+        return x
+
+    def __str__(self):
+        elem_type = self.elem_type if self.elem_type is not None else ""
+        return "BagValidator({})".format(elem_type)
 
     def __repr__(self):
         return str(self)
