@@ -132,7 +132,7 @@ class FeatureMappingFlattener(object):
     def _fit_first(self, first):
         # Check for a tuples of numbers, strings or "sequences" or "bags".
         schema = Schema((int, float, str, NumberSequenceValidator(),
-                        BagValidator(memorize=False)))
+                        BagValidator()))
         schema.validate(first)
 
         if not first:
@@ -180,6 +180,8 @@ class FeatureMappingFlattener(object):
             # register each value only once
             for elem in set(datapoint[i]):
                 self._add_column(i, elem)
+            # schema fitting
+            self.schema[i].fit_step(datapoint[i])
 
     def _iter_valid(self, X, first=None):
         if first is not None:
@@ -414,15 +416,22 @@ class NumberSequenceValidator(object):
 
 class BagValidator(object):
 
-    def __init__(self, sample_data_point=None, memorize=True):
-        # Computes elem_type from sample data point.
-        self.memorize_type = memorize
+    def __init__(self, sample_data=None):
+        # Computes elem_type from sample data.
         self.elem_type = None
-        if sample_data_point:
-            # We'll infer type from the data point
-            self.elem_type = self.infer_type_from_data_point(sample_data_point)
+        if sample_data:
+            # We'll infer type from the sample data
+            self.elem_type = self.infer_type_from_data(sample_data)
 
-    def infer_type_from_data_point(self, x):
+    def fit_step(self, x):
+        # BagValidator needs to be fit on every step because since it
+        # allows empty bags, you need to walk every data sample until you found
+        # the first non-empty and from it infer the elements type.
+        if self.elem_type is None and x:
+            # We'll infer type from the sample data
+            self.elem_type = self.infer_type_from_data(x)
+
+    def infer_type_from_data(self, x):
         if x:
             return type(list(x)[0])
 
@@ -433,9 +442,7 @@ class BagValidator(object):
             if self.elem_type:
                 elem_type = self.elem_type
             else:
-                elem_type = self.infer_type_from_data_point(x)
-                if self.memorize_type:
-                    self.elem_type = elem_type
+                elem_type = self.infer_type_from_data(x)
             if not all(isinstance(x_i, elem_type) for x_i in x):
                 raise SchemaError("Expecting all elements to be {} but got "
                                   "{}".format(self.elements, type(x_i)), [])
