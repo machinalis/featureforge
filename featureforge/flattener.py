@@ -207,7 +207,7 @@ class FeatureMappingFlattener(object):
 
         logger.info("Finished flattener.fit")
         logger.info("Input tuple size %s, output vector size %s" %
-                     (len(first), len(self.indexes)))
+                    (len(first), len(self.indexes)))
         return self
 
     def _transform_step(self, datapoint):
