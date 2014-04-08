@@ -329,6 +329,21 @@ class TestBagOfWordsTransform(unittest.TestCase):
                     vector_idx = V.indexes[(i, v)]
                     self.assertEqual(v_count, z[vector_idx])
 
+    def test_transforming_non_fitted_word_is_ignored(self):
+        X = [(self.COLORS[:-2],),
+             (self.COLORS[:-1], )
+             ]
+        # never fited with self.COLORS[-1]
+        known_colors = len(self.COLORS) - 1
+        V = FeatureMappingFlattener(sparse=False)
+        V.fit(X)
+        Y = [(self.COLORS[-1:], ),  # the unknown color only
+             (self.COLORS[:], ),
+             ]
+        Z = V.transform(Y)
+        self.assertTrue(numpy.array_equal(Z[0], [0.0] * known_colors))
+        self.assertTrue(numpy.array_equal(Z[1], [1.0] * known_colors))
+
     def test_sparse_is_equivalent(self):
         random.seed("the man who sold the world")
         X = list(self._get_random_tuples())
