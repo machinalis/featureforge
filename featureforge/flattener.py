@@ -444,8 +444,8 @@ class BagValidator(object):
             else:
                 elem_type = self.infer_type_from_data(x)
             if not all(isinstance(x_i, elem_type) for x_i in x):
-                raise SchemaError("Expecting all elements to be {} but got "
-                                  "{}".format(self.elements, type(x_i)), [])
+                msg = "Expecting all elements to be {}".format(self.elem_type)
+                raise SchemaError(msg, [])
         return x
 
     def __str__(self):
