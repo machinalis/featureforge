@@ -44,5 +44,9 @@ submitting github pull requests or issues.
 
 Changelog
 ---------
+0.1.1:
+    - Added support for python 3
+    - Added support for bag-of-words features
 
-0.1: Initial release
+0.1:
+    - Initial release
