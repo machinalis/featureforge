@@ -260,25 +260,25 @@ class TestBagOfWordsFit(unittest.TestCase):
         self.assertRaises(ValueError, V.fit,
                           list(self.make_every_list_(X, tuple)))
 
-    def test_fit_ok_a_tuple_element_with_seq_of_strings(self):
+    def test_fit_ok_a_bag_with_seq_of_strings(self):
         X = [([u'one', u'two'], ),
              ([u'four', u'two', u'four'], )
              ]
         self.check_fit_ok(X)
 
-    def test_fit_ok_a_tuple_element_with_seq_of_hashables(self):
+    def test_fit_ok_a_bag_with_seq_of_hashables(self):
         X = [(PEOPLE[:2], ),
              (PEOPLE[:], )
              ]
         self.check_fit_ok(X)
 
-    def test_fit_fails_when_tuple_element_is_a_mixed(self):
+    def test_fit_fails_when_bag_elements_are_from_mixed_types(self):
         X = [([u'one', PEOPLE[0]], ),
              ([u'four', PEOPLE[3], u'four'], )
              ]
         self.check_fit_fails(X)
 
-    def test_fit_fails_when_tuple_element_when_not_uniform(self):
+    def test_fit_fails_when_the_successive_bags_are_of_different_type(self):
         # First is for people, later for strings... That's not good.
         X = [(PEOPLE[:2], ),
              ([u'four', u'two', u'four'], )
