@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import array
+from collections import Counter
 import logging
 
 from future.builtins import map, range, str
@@ -131,7 +132,7 @@ class FeatureMappingFlattener(object):
     def _fit_first(self, first):
         # Check for a tuples of numbers, strings or "sequences" or "bags".
         schema = Schema((int, float, str, NumberSequenceValidator(),
-                         BagValidator()))
+                        BagValidator(memorize=False)))
         schema.validate(first)
 
         if not first:
@@ -193,7 +194,6 @@ class FeatureMappingFlattener(object):
         except (TypeError, StopIteration):
             raise ValueError("Cannot fit with an empty dataset")
         logger.info("Starting flattener.fit")
-
         # Build basic schema
         self._fit_first(first)
 
@@ -219,10 +219,19 @@ class FeatureMappingFlattener(object):
                     j = self.indexes[(i, data)]
                     vector[j] = 1.0
             else:
-                j = self.indexes[(i, 0)]
-                assert self.indexes[(i, len(data) - 1)] == \
-                       j + len(data) - 1
-                vector[j:j + len(data)] = data
+                # ok, it's a sequence. Not sure if a Bag or a NumSeq
+                if isinstance(self.schema[i], NumberSequenceValidator):
+                    j = self.indexes[(i, 0)]
+                    assert self.indexes[(i, len(data) - 1)] == \
+                        j + len(data) - 1
+                    vector[j:j + len(data)] = data
+                else:
+                    for word in data:
+                        # "word" because bag-of-words, but remember that can
+                        # be other hashable type
+                        if (i, word) in self.indexes:
+                            j = self.indexes[(i, word)]
+                            vector[j] += 1.0
         return vector
 
     def _transform(self, X):
@@ -286,11 +295,22 @@ class FeatureMappingFlattener(object):
                     j = self.indexes[(i, data)]
                     yield j, 1.0
             else:
-                j = self.indexes[(i, 0)]
-                assert self.indexes[(i, len(data) - 1)] == \
-                       j + len(data) - 1
-                for k, data_k in enumerate(data):
-                    yield j + k, data_k
+                # ok, it's a sequence. Not sure if a Bag or a NumSeq
+                if isinstance(self.schema[i], NumberSequenceValidator):
+                    j = self.indexes[(i, 0)]
+                    assert self.indexes[(i, len(data) - 1)] == \
+                        j + len(data) - 1
+
+                    for k, data_k in enumerate(data):
+                        yield j + k, data_k
+                else:
+                    counted_data = Counter(data)
+                    for word, count in counted_data.items():
+                        # "word" because bag-of-words, but remember that can
+                        # be other hashable type
+                        if (i, word) in self.indexes:
+                            j = self.indexes[(i, word)]
+                            yield j, count
 
     def _sparse_transform(self, X):
         logger.info("Starting flattener.transform")
@@ -394,22 +414,31 @@ class NumberSequenceValidator(object):
 
 class BagValidator(object):
 
-    def __init__(self, sample_data_point=None):
+    def __init__(self, sample_data_point=None, memorize=True):
         # Computes elem_type from sample data point.
+        self.memorize_type = memorize
         self.elem_type = None
         if sample_data_point:
             # We'll infer type from the data point
-            self.validate(sample_data_point)
-            #self.elem_type = type(list(sample_data_point)[0])
+            self.elem_type = self.infer_type_from_data_point(sample_data_point)
+
+    def infer_type_from_data_point(self, x):
+        if x:
+            return type(list(x)[0])
 
     def validate(self, x):
         if not isinstance(x, (list, set, tuple)):
             raise SchemaError("Sequence is not list, tuple nor set", [])
-        if x and not self.elem_type:
-            self.elem_type = type(list(x)[0])
-        if not all(isinstance(x_i, self.elem_type) for x_i in x):
-            raise SchemaError("Expecting all elements to be {} but got "
-                              "{}".format(self.elements, type(x_i)), [])
+        if x:
+            if self.elem_type:
+                elem_type = self.elem_type
+            else:
+                elem_type = self.infer_type_from_data_point(x)
+                if self.memorize_type:
+                    self.elem_type = elem_type
+            if not all(isinstance(x_i, elem_type) for x_i in x):
+                raise SchemaError("Expecting all elements to be {} but got "
+                                  "{}".format(self.elements, type(x_i)), [])
         return x
 
     def __str__(self):

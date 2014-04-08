@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from collections import Counter
 import random
 import unittest
 
@@ -24,6 +25,10 @@ class Person(object):
 
     def __eq__(self, other):
         return (self.age, self.name) == (other.age, other.name)
+
+
+PEOPLE = [Person('John', 23), Person('Ana', 55), Person('Maria', 3),
+          Person('Peter', 11), Person('Rachel', 31)]
 
 
 class TestFeatureMappingFlattener(unittest.TestCase):
@@ -228,25 +233,10 @@ class TestFeatureMappingFlattener(unittest.TestCase):
         self.assertTrue(numpy.array_equal(YA, YB))
 
 
-class TestBagOfWordsFlatting(unittest.TestCase):
-    PEOPLE = [Person('John', 23), Person('Ana', 55), Person('Maria', 3),
-              Person('Peter', 11), Person('Rachel', 31)]
-    COLORS = [u"blue", u"red", u"yellow", u"green"]
+class TestBagOfWordsFit(unittest.TestCase):
 
-    def _get_random_tuples(self):
-        bag_len_1 = random.randint(0, 4)
-        bag_len_2 = random.randint(0, 4)
-        bag_list = [random.choice(self.PEOPLE) for i in range(bag_len_1)]
-        bag_set = set([random.choice(self.COLORS) for i in range(bag_len_2)])
-        for _ in range(100):
-            t = (bag_list, bag_set)
-            yield t
-        # Just to be sure that always all people and all colors were returned
-        # at least once
-        yield (list(self.PEOPLE), set(self.COLORS))
-
-    def make_every_list(self, X, what):
-        # what must be a type, like set or tuple
+    def make_every_list_(self, X, what):
+        # "what" must be a type, like set or tuple
         for x in X:
             xt = []
             for xi in x:
@@ -256,45 +246,96 @@ class TestBagOfWordsFlatting(unittest.TestCase):
                     xt.append(xi)
             yield tuple(xt)
 
-    def check_fit_ok_list_or_set(self, X):
+    def check_fit_ok(self, X):
         V = FeatureMappingFlattener()
         V.fit(X)
-        V.fit(list(self.make_every_list(X, set)))
-        V.fit(list(self.make_every_list(X, tuple)))
+        V.fit(list(self.make_every_list_(X, set)))
+        V.fit(list(self.make_every_list_(X, tuple)))
 
-    def check_fit_fails_list_or_set(self, X):
+    def check_fit_fails(self, X):
         V = FeatureMappingFlattener()
         self.assertRaises(ValueError, V.fit, X)
-        self.assertRaises(ValueError, V.fit, list(self.make_every_list(X, set)))
-        self.assertRaises(ValueError, V.fit, list(self.make_every_list(X, tuple)))
+        self.assertRaises(ValueError, V.fit,
+                          list(self.make_every_list_(X, set)))
+        self.assertRaises(ValueError, V.fit,
+                          list(self.make_every_list_(X, tuple)))
 
     def test_fit_ok_a_tuple_element_with_seq_of_strings(self):
         X = [([u'one', u'two'], ),
              ([u'four', u'two', u'four'], )
              ]
-        self.check_fit_ok_list_or_set(X)
+        self.check_fit_ok(X)
 
     def test_fit_ok_a_tuple_element_with_seq_of_hashables(self):
-        X = [(self.PEOPLE[:2], ),
-             (self.PEOPLE[:], )
+        X = [(PEOPLE[:2], ),
+             (PEOPLE[:], )
              ]
-        self.check_fit_ok_list_or_set(X)
+        self.check_fit_ok(X)
 
     def test_fit_fails_when_tuple_element_is_a_mixed(self):
-        X = [([u'one', self.PEOPLE[0]], ),
-             ([u'four', self.PEOPLE[3], u'four'], )
+        X = [([u'one', PEOPLE[0]], ),
+             ([u'four', PEOPLE[3], u'four'], )
              ]
-        self.check_fit_fails_list_or_set(X)
+        self.check_fit_fails(X)
 
     def test_fit_fails_when_tuple_element_when_not_uniform(self):
         # First is for people, later for strings... That's not good.
-        X = [(self.PEOPLE[:2], ),
+        X = [(PEOPLE[:2], ),
              ([u'four', u'two', u'four'], )
              ]
-        self.check_fit_fails_list_or_set(X)
+        self.check_fit_fails(X)
+        # Even if the initial row is empty, when finally discovered the type,
+        # is checked
+        X.insert(0, ([], ))
+        self.check_fit_fails(X)
 
     def test_fit_fails_a_tuple_elem_with_set_of_numbers(self):
         X = [(set([1, 2]), ),
              (set([4.0, 2.2, 4.0]), )
              ]
-        self.check_fit_fails_list_or_set(X)
+        self.check_fit_fails(X)
+
+
+class TestBagOfWordsTransform(unittest.TestCase):
+    COLORS = [u"blue", u"red", u"yellow", u"green"]
+
+    def _get_random_tuples(self):
+        bag_len_1 = random.randint(0, 4)
+        bag_len_2 = random.randint(0, 4)
+        bag_list = [random.choice(PEOPLE) for i in range(bag_len_1)]
+        bag_set = set([random.choice(self.COLORS) for i in range(bag_len_2)])
+        for _ in range(100):
+            t = (bag_list, bag_set)
+            yield t
+        # Just to be sure that always all people and all colors were returned
+        # at least once
+        yield (list(PEOPLE), set(self.COLORS))
+
+    def test_transform_produce_expected_values_on_the_result(self):
+        random.seed("Lady smith")
+        X = list(self._get_random_tuples())
+        random.seed("black mambazo")
+        Y = list(self._get_random_tuples())
+        V = FeatureMappingFlattener(sparse=False)
+        V.fit(X)
+        Z = V.transform(Y)
+        for y, z in zip(Y, Z):
+            for i, v_seq in enumerate(y):
+                assert isinstance(v_seq, (list, set, tuple))
+                # we know that there's only Bag-of-strings type, with COLORS
+                # and a Bag of Persons
+                counter = Counter(v_seq)
+                for v, v_count in (counter.items()):
+                    vector_idx = V.indexes[(i, v)]
+                    self.assertEqual(v_count, z[vector_idx])
+
+    def test_sparse_is_equivalent(self):
+        random.seed("the man who sold the world")
+        X = list(self._get_random_tuples())
+        # fit + transform
+        A = FeatureMappingFlattener(sparse=True)
+        YA = A.fit_transform(X).todense()
+        # fit_transform
+        B = FeatureMappingFlattener(sparse=False)
+        YB = B.fit_transform(X)
+        self.assertTrue(numpy.array_equal(YA, YB))
