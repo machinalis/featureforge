@@ -26,7 +26,7 @@ class FeatureMappingFlattener(object):
             ...
             3,                        # Any int (or float)
             u"value",                 # Any string (str on py3, unicode on py2)
-            [u"value_1", u"value_2"]  # A set or list of hashable (of same type)
+            [u"value_1", u"value_2"]  # A set, tuple or list of hashables
             [1, 5, 9]                 # A list of integers (or floats)
             ...
         )
@@ -35,7 +35,8 @@ class FeatureMappingFlattener(object):
         - int/float
         - str/unicode: Are meant to be enumerated types and are one-hot
           encoded.
-        - set or list of str/unicode or hashables: Are meant to be bag-of-words
+        - set, tuple or list of str/unicode or hashables: Are meant to be
+          bag-of-words
         - list/tuple/array of integers/floats: A convenience method to pack
           several numbers togheter but otherwise equivalent to inserting each
           value into the feature tuple.
