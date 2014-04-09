@@ -37,8 +37,8 @@ setup(
         "Topic :: Software Development :: Testing",
     ],
     keywords=[
-      "machine learning", "scikit", "scikit-learn", "sklearn",
-      "features", "testing", "vectorization", "preprocessing"
+        "machine learning", "scikit", "scikit-learn", "sklearn",
+        "features", "testing", "vectorization", "preprocessing"
     ],
     install_requires=[
         "mock",
