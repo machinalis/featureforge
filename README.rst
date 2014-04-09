@@ -19,6 +19,11 @@ preprocessing. Feature Forge helps you with:
    matrix. The evaluator has a robust mode that allows you some tolerance both
    for invalid data and buggy features.
 
+Installation
+------------
+
+Just `pip install featureforge`.
+
 Documentation
 -------------
 
@@ -39,5 +44,9 @@ submitting github pull requests or issues.
 
 Changelog
 ---------
+0.1.1:
+    - Added support for python 3
+    - Added support for bag-of-words features
 
-0.1: Initial release
+0.1:
+    - Initial release

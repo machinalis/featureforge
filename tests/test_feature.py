@@ -161,7 +161,7 @@ class TestObjectSchema(TestCase):
 
     def test_repr(self):
         s = ObjectSchema(a="hello", b=int)
-        self.assertEqual(repr(s), "ObjectSchema(a='hello', b=<type 'int'>)")
+        self.assertEqual(repr(s), "ObjectSchema(a='hello', b=%s)" % int)
 
     def test_inner_schema(self):
         s = ObjectSchema(
