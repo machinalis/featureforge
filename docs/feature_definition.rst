@@ -52,6 +52,7 @@ Your function should take a single argument (of whatever type you are using
 as a data point) and return a value of any of the following types:
 
  * a string (with a tag, for multi-valued features)
+ * a list or set of strings (or other hashables objects)
  * a number (float or int, for numerical features)
  * a list/vector of numbers for vector-typed features
 
@@ -306,8 +307,8 @@ so typically one of the following ``output_schema`` will be ok:
  * ``int`` or ``float`` for numeric features
  * ``unicode`` for enumerations (on python 3, ``str``)
  * ``list(int)`` or ``list(float)`` for numeric vectors
- * ``list(hashable)`` or ``set(hashable)`` or ``tuple(hashable)`` for bag of words,
-    where ``hashable`` is any hashable except numeric.
+ * ``list(int)`` or ``list(float)`` for numeric vectors
+ * ``list(hashable)`` or ``set(hashable)`` or ``tuple(hashable)`` for bag of words, where ``hashable`` is any hashable except numeric.
 
 In addition to a type specification, it is sometimes useful to add to the
 schema one lambda with an assertion over the value. For example,
