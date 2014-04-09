@@ -21,6 +21,25 @@ setup(
     packages=[
         "featureforge",
     ],
+    classifiers=[
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.3",
+        "Intended Audience :: Developers"
+        "Development Status :: 4 - Beta",
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: OS Independent",
+        "Topic :: Scientific/Engineering",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Software Development :: Libraries",
+        "Topic :: Software Development :: Testing",
+    ],
+    keywords=[
+      "machine learning", "scikit", "scikit-learn", "sklearn",
+      "features", "testing", "vectorization", "preprocessing"
+    ],
     install_requires=[
         "mock",
         "future",
