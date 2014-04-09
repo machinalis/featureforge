@@ -47,7 +47,7 @@ class FeatureMappingFlattener(object):
         - The dimension of the output matrix' rows are calculated.
         - A mapping between tuple indexes and output row indexes is fixed.
         - A schema of the data for validation is inferred.
-        - One-hot encoding and bad-of-words values are learned.
+        - One-hot encoding and bag-of-words values are learned.
         - Validation is applied to the data being fitted.
 
     Validation checks:
