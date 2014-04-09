@@ -304,8 +304,10 @@ be an arbitrary object if you want to feed them to machine learning algorithms,
 so typically one of the following ``output_schema`` will be ok:
 
  * ``int`` or ``float`` for numeric features
- * ``unicode`` for enumerations
+ * ``unicode`` for enumerations (on python 3, ``str``)
  * ``list(int)`` or ``list(float)`` for numeric vectors
+ * ``list(hashable)`` or ``set(hashable)`` or ``tuple(hashable)`` for bag of words,
+    where ``hashable`` is any hashable except numeric.
 
 In addition to a type specification, it is sometimes useful to add to the
 schema one lambda with an assertion over the value. For example,

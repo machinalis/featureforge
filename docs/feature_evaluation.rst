@@ -15,7 +15,7 @@ data easier
 Basic usage
 -----------
 
-The core class for applying features to values is 
+The core class for applying features to values is
 `featureforge.vectorizer.Vectorizer`. This class is instantiated with a list
 of features to be used, and then follows the standard pipeline API from scikit
 learn described at <http://scikit-learn.org/stable/modules/generated/sklearn.pipeline.Pipeline.html>.
@@ -53,9 +53,16 @@ The mapping from feature to columns depends on the type of the feature value:
  * Enumerated values are mapped to one column for each possible value of the
    enumeration, with values 0 or 1. For example a feature with possible values
    "animal", "vegetable", "mineral" will be mapped to 3 columns, and for each
-   row only one will have a 1 and the rest will have zeroes. 
+   row only one will have a 1 and the rest will have zeroes.
  * Vector features are mapped to a number of columns equal to the size of the
    vector.
+ * Bag of Words values, very similary to Enumerated values, are mapped to one
+   column for each possible value, with values from 0 to the number of times
+   that each value appears in the bag. For example a feature with possible
+   values "red", "green", "blue" will be mapped to 3 columns, and for each row
+   may be all zeroes if evaluated with empty sequence, all ones if evaluated
+   with ["red", "green", "blue"], or a 3 and two zeroes if evaluated with
+   ["red", "red", "red"]
 
 One consequence of this is that any tool that operates on your data afterwards
 and returns column indexes will return numbers that are not trivially mapped to
@@ -63,12 +70,12 @@ your features. For example, some scikit-learn algorithms provide some analysis
 of the matrix telling you which columns are best correlated with some property.
 If you use those you will get a result like "columns 37 and 42 have high
 correlation", but you probably want to know the name of the features which
-are related to columns 37 and 42. To do so, the vectorizer provides a 
+are related to columns 37 and 42. To do so, the vectorizer provides a
 `column_to_feature(i)` method, which takes a column number and returns a tuple
 (feature, info), where feature is the original feature (remember that you can
 get a better description printing f.name when f is a feature). The second
 field in the result tuple is `None` for numeric features, the label for
-enumerated features (i.e., "animal", "vegetable" or "mineral") and the index
+enumerated or bag features (i.e., "animal", "vegetable" or "mineral") and the index
 for vector features.
 
 
@@ -103,7 +110,4 @@ When in tolerant mode, the following things happen:
 Right now, the configuration values for the policy are hardcoded.
 
 Note that the process described above can result on a matrix that is missing
-some rows (data points) and some columns (features). 
-
-
-
+some rows (data points) and some columns (features).

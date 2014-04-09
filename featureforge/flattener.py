@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import array
+from collections import Counter
 import logging
 
 from future.builtins import map, range, str
@@ -23,9 +24,10 @@ class FeatureMappingFlattener(object):
     A feature tuple is a regular python tuple of the shape:
         (
             ...
-            3,         # Any int (or float)
-            u"value",  # Any string (str on py3, unicode on py2)
-            [1, 5, 9]  # A list of integers (or floats)
+            3,                        # Any int (or float)
+            u"value",                 # Any string (str on py3, unicode on py2)
+            [u"value_1", u"value_2"]  # A set, tuple or list of hashables
+            [1, 5, 9]                 # A list of integers (or floats)
             ...
         )
 
@@ -33,6 +35,8 @@ class FeatureMappingFlattener(object):
         - int/float
         - str/unicode: Are meant to be enumerated types and are one-hot
           encoded.
+        - set, tuple or list of str/unicode or hashables: Are meant to be
+          bag-of-words
         - list/tuple/array of integers/floats: A convenience method to pack
           several numbers togheter but otherwise equivalent to inserting each
           value into the feature tuple.
@@ -43,7 +47,7 @@ class FeatureMappingFlattener(object):
         - The dimension of the output matrix' rows are calculated.
         - A mapping between tuple indexes and output row indexes is fixed.
         - A schema of the data for validation is inferred.
-        - One-hot encoding values are learned.
+        - One-hot encoding and bag-of-words values are learned.
         - Validation is applied to the data being fitted.
 
     Validation checks:
@@ -127,9 +131,11 @@ class FeatureMappingFlattener(object):
             self.reverse.append(key)
 
     def _fit_first(self, first):
-        # Check for a tuples of numbers, strings or "sequences".
-        schema = Schema((int, float, str, SequenceValidator()))
+        # Check for a tuples of numbers, strings or "sequences" or "bags".
+        schema = Schema((int, float, str, NumberSequenceValidator(),
+                        BagValidator()))
         schema.validate(first)
+
         if not first:
             raise ValueError("Cannot fit with no empty features")
 
@@ -138,6 +144,7 @@ class FeatureMappingFlattener(object):
         self.reverse = []  # Matrix column to tuple index mapping
         self.schema = [None] * len(first)
         self.str_tuple_indexes = []
+        self.bag_indexes = []
         for i, data in enumerate(first):
             if isinstance(data, (int, float)):
                 type_ = Use(float)  # ints and floats are all mapped to float
@@ -146,9 +153,21 @@ class FeatureMappingFlattener(object):
                 type_ = str  # One-hot encoded indexes are added last
                 self.str_tuple_indexes.append(i)
             else:
-                type_ = SequenceValidator(data)
-                for j in range(type_.size):
-                    self._add_column(i, j)
+                # It's an iterable, maybe of numbers, maybe of hashables.
+                # Given that we don't allow empty number-sequences, if empty
+                # we'll consider it's a Bag. Otherwise, we'll grab any element
+                # and if it's not a number we'll consider it again as a Bag.
+                if len(data) != 0:
+                    elem = list(data)[0]  # sets are not indexable.
+                else:
+                    elem = None  # Will evaluate as Not-number, which is fine.
+                if type(elem) in (int, float):
+                    type_ = NumberSequenceValidator(data)
+                    for j in range(type_.size):
+                        self._add_column(i, j)
+                else:
+                    type_ = BagValidator(data)
+                    self.bag_indexes.append(i)
             self.schema[i] = type_
         assert None not in self.schema
         self.schema = tuple(self.schema)
@@ -157,6 +176,13 @@ class FeatureMappingFlattener(object):
     def _fit_step(self, datapoint):
         for i in self.str_tuple_indexes:
             self._add_column(i, datapoint[i])
+        for i in self.bag_indexes:
+            # no matter if it's a list, a tuple or a set, we need to
+            # register each value only once
+            for elem in set(datapoint[i]):
+                self._add_column(i, elem)
+            # schema fitting
+            self.schema[i].fit_step(datapoint[i])
 
     def _iter_valid(self, X, first=None):
         if first is not None:
@@ -171,18 +197,18 @@ class FeatureMappingFlattener(object):
         except (TypeError, StopIteration):
             raise ValueError("Cannot fit with an empty dataset")
         logger.info("Starting flattener.fit")
-
         # Build basic schema
         self._fit_first(first)
 
-        if self.str_tuple_indexes:  # Is there anything to one-hot encode ?
+        if self.str_tuple_indexes or self.bag_indexes:
+            # Is there anything to one-hot encode or bag-of-words encode?
             # See all datapoints looking for one-hot encodeable feature values
             for datapoint in self._iter_valid(X, first=first):
                 self._fit_step(datapoint)
 
         logger.info("Finished flattener.fit")
         logger.info("Input tuple size %s, output vector size %s" %
-                     (len(first), len(self.indexes)))
+                    (len(first), len(self.indexes)))
         return self
 
     def _transform_step(self, datapoint):
@@ -196,10 +222,19 @@ class FeatureMappingFlattener(object):
                     j = self.indexes[(i, data)]
                     vector[j] = 1.0
             else:
-                j = self.indexes[(i, 0)]
-                assert self.indexes[(i, len(data) - 1)] == \
-                       j + len(data) - 1
-                vector[j:j + len(data)] = data
+                # ok, it's a sequence. Not sure if a Bag or a NumSeq
+                if isinstance(self.schema[i], NumberSequenceValidator):
+                    j = self.indexes[(i, 0)]
+                    assert self.indexes[(i, len(data) - 1)] == \
+                        j + len(data) - 1
+                    vector[j:j + len(data)] = data
+                else:
+                    for word in data:
+                        # "word" because bag-of-words, but remember that can
+                        # be other hashable type
+                        if (i, word) in self.indexes:
+                            j = self.indexes[(i, word)]
+                            vector[j] += 1.0
         return vector
 
     def _transform(self, X):
@@ -263,11 +298,22 @@ class FeatureMappingFlattener(object):
                     j = self.indexes[(i, data)]
                     yield j, 1.0
             else:
-                j = self.indexes[(i, 0)]
-                assert self.indexes[(i, len(data) - 1)] == \
-                       j + len(data) - 1
-                for k, data_k in enumerate(data):
-                    yield j + k, data_k
+                # ok, it's a sequence. Not sure if a Bag or a NumSeq
+                if isinstance(self.schema[i], NumberSequenceValidator):
+                    j = self.indexes[(i, 0)]
+                    assert self.indexes[(i, len(data) - 1)] == \
+                        j + len(data) - 1
+
+                    for k, data_k in enumerate(data):
+                        yield j + k, data_k
+                else:
+                    counted_data = Counter(data)
+                    for word, count in counted_data.items():
+                        # "word" because bag-of-words, but remember that can
+                        # be other hashable type
+                        if (i, word) in self.indexes:
+                            j = self.indexes[(i, word)]
+                            yield j, count
 
     def _sparse_transform(self, X):
         logger.info("Starting flattener.transform")
@@ -328,13 +374,13 @@ class FeatureMappingFlattener(object):
         return result
 
 
-class SequenceValidator(object):
-    def __init__(self, size=None):
-        if size is None or isinstance(size, int):
-            self.size = size
-        else:
-            seq = SequenceValidator().validate(size)
+class NumberSequenceValidator(object):
+    def __init__(self, sample_data_point=None):
+        if sample_data_point:
+            seq = NumberSequenceValidator().validate(sample_data_point)
             self.size = len(seq)
+        else:
+            self.size = None
 
     def validate(self, x):
         if not (isinstance(x, list) or isinstance(x, tuple) or
@@ -363,7 +409,49 @@ class SequenceValidator(object):
         size = self.size
         if size is None:
             size = ""
-        return "SequenceValidator({})".format(size)
+        return "NumberSequenceValidator({})".format(size)
+
+    def __repr__(self):
+        return str(self)
+
+
+class BagValidator(object):
+
+    def __init__(self, sample_data=None):
+        # Computes elem_type from sample data.
+        self.elem_type = None
+        if sample_data:
+            # We'll infer type from the sample data
+            self.elem_type = self.infer_type_from_data(sample_data)
+
+    def fit_step(self, x):
+        # BagValidator needs to be fit on every step because since it
+        # allows empty bags, you need to walk every data sample until you found
+        # the first non-empty and from it infer the elements type.
+        if self.elem_type is None and x:
+            # We'll infer type from the sample data
+            self.elem_type = self.infer_type_from_data(x)
+
+    def infer_type_from_data(self, x):
+        if x:
+            return type(list(x)[0])
+
+    def validate(self, x):
+        if not isinstance(x, (list, set, tuple)):
+            raise SchemaError("Sequence is not list, tuple nor set", [])
+        if x:
+            if self.elem_type:
+                elem_type = self.elem_type
+            else:
+                elem_type = self.infer_type_from_data(x)
+            if not all(isinstance(x_i, elem_type) for x_i in x):
+                msg = "Expecting all elements to be {}".format(self.elem_type)
+                raise SchemaError(msg, [])
+        return x
+
+    def __str__(self):
+        elem_type = self.elem_type if self.elem_type is not None else ""
+        return "BagValidator({})".format(elem_type)
 
     def __repr__(self):
         return str(self)
