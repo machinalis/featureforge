@@ -48,7 +48,7 @@ setup(
         "scipy"
     ],
     dependency_links=[
-        "git+ssh://git@github.com/jmansilla/schema.git@7c239e40630826fbbf0d5a29dbe6863e3617e162#egg=schema-0.2.1"
+        "https://github.com/jmansilla/schema/tarball/master#egg=schema-0.2.1"
     ],
     include_package_data=False,
 )
