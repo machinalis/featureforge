@@ -13,7 +13,6 @@ from featureforge.experimentation.utils import DictNormalizer
 logger = logging.getLogger(__name__)
 
 
-BOOKING_DURATION = 10 * 60  # Measured in seconds
 EXPERIMENTS_COLLECTION_NAME = 'experiment_data'
 
 
@@ -45,19 +44,19 @@ class StatsManager(object):
     STATUS_BOOKED = 'status_booked'
     STATUS_SOLVED = 'status_solved'
 
-    def __init__(self, db_name, db_uri=None,
-                 booking_duration=BOOKING_DURATION, keep_running_on_errors=True):
+    def __init__(self, booking_duration, db_name, db_uri=None,
+                 keep_running_on_errors=True):
         """
         Creates new instance of Stats Manager.
-        You can provide the following parameters:
+        Parameters:
+            - booking_duration,
             - db_name: Name of the mongo database to use (will be created if needed)
             - db_uri: Default is None, which will be treated as localhost and the default
                 dbserver port.
-            - booking_duration (by default is %s seconds),
             - keep_running_on_errors: Default True. Indicates if errors shall be raised,
                 or if we shall attempt to recover from issues and keep running (errors
                 will be always logged to stderr)
-        """ % (BOOKING_DURATION)
+        """
         self.keep_running_on_errors = keep_running_on_errors
         self._db_config = {'uri': db_uri, 'name': db_name}
         self.booking_delta = timedelta(seconds=booking_duration)

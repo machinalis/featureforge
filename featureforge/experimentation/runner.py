@@ -18,18 +18,42 @@ from docopt import docopt
 from progress.bar import Bar
 
 from featureforge.experimentation.stats_manager import StatsManager
+from featureforge.experimentation.utils import get_git_info
+
+# Measured in seconds
+BOOKING_DURATION = 10 * 60  # just a default
 
 
-def _run(opts, runner, conf_extender):
-    stats = StatsManager(db_uri=opts[u"--dbserver"],
-                         db_name=opts[u"<dbname>"])
+def main(single_runner,
+         conf_extender=None,
+         booking_duration=BOOKING_DURATION,
+         use_git_info_from_path=None,
+         version=u'Run experiments 0.1'):
+    command_name = sys.argv[0]
+    custom__doc__ = __doc__.replace(u'run_experiments.py', command_name)
+    logging.basicConfig(level=logging.DEBUG,
+                        format=u"\n%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-    configs = json.load(open(opts[u"<configs.json>"]))
-    bar = Bar(u'Processing', max=len(configs))
-    for config in configs:
+    opts = docopt(custom__doc__, version=version)
+
+    stats = StatsManager(booking_duration=booking_duration,
+                         db_name=opts[u"<dbname>"],
+                         db_uri=opts[u"--dbserver"])
+
+    experiment_configurations = json.load(open(opts[u"<configs.json>"]))
+    bar = Bar(u'Processing', max=len(experiment_configurations))
+    if use_git_info_from_path is not None:
+        GIT_INFO = get_git_info(use_git_info_from_path)
+    else:
+        GIT_INFO = None
+    print GIT_INFO
+    for config in experiment_configurations:
         # Extend individual experiment config with the dynamic extender, if any
         if conf_extender is not None:
             conf_extender(config)
+        # Adding GIT info to the config if computed and not present
+        if GIT_INFO is not None and u'git_info' not in config:
+            config[u'git_info'] = GIT_INFO
 
         # Book experiment
         ticket = stats.book_if_available(config)
@@ -39,7 +63,7 @@ def _run(opts, runner, conf_extender):
 
         # Run experiment
         try:
-            result = runner(config)
+            result = single_runner(config)
         except KeyboardInterrupt:
             logging.error(u"Interrupted by keyboard, terminating...")
             break
@@ -55,13 +79,3 @@ def _run(opts, runner, conf_extender):
                 logging.error(u"Experiment successful but could not stored! "
                               "Skipping... ")
     bar.finish()
-
-
-def main(runner, conf_extender=None, version=u'Run experiments 0.1'):
-    command_name = sys.argv[0]
-    custom__doc__ = __doc__.replace(u'run_experiments.py', command_name)
-    logging.basicConfig(level=logging.DEBUG,
-                        format=u"\n%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
-    options = docopt(custom__doc__, version=version)
-    _run(options, runner, conf_extender)
