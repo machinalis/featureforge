@@ -1,6 +1,3 @@
-from copy import deepcopy
-import json
-import hashlib
 import os
 import os.path
 import sys
