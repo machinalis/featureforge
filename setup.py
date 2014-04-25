@@ -41,6 +41,9 @@ setup(
         "features", "testing", "vectorization", "preprocessing"
     ],
     install_requires=[
+        "docopt",
+        "pymongo",
+        "progress",
         "mock",
         "future",
         "schema==0.2.1",
