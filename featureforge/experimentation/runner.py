@@ -10,6 +10,7 @@ Options:
  --dbserver=<dbserver>  URI of the mongodb server for storing results. Typically "ip:port" [default: localhost]
 """
 from __future__ import division
+from copy import copy
 import json
 import logging
 import sys
@@ -49,8 +50,9 @@ def main(single_runner,
     print GIT_INFO
     for config in experiment_configurations:
         # Extend individual experiment config with the dynamic extender, if any
+        config = copy(config)
         if conf_extender is not None:
-            conf_extender(config)
+            config = conf_extender(config)
         # Adding GIT info to the config if computed and not present
         if GIT_INFO is not None and u'git_info' not in config:
             config[u'git_info'] = GIT_INFO
