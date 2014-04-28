@@ -13,6 +13,7 @@ Contents:
 
    feature_definition
    feature_evaluation
+   experimentation
 
 Indices and tables
 ==================
