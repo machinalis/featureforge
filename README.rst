@@ -44,6 +44,9 @@ submitting github pull requests or issues.
 
 Changelog
 ---------
+0.1.4:
+    - Discarded the need of using forked version of Schema library.
+
 0.1.3:
     - Added support for running and generating stats for experiments
 
