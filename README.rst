@@ -18,6 +18,8 @@ preprocessing. Feature Forge helps you with:
  * Evaluating your features on a data set, producing a feature evaluation
    matrix. The evaluator has a robust mode that allows you some tolerance both
    for invalid data and buggy features.
+ * Experimentation: running, registering, classifying and reproducing
+   experiments for determining best settings for your problems.
 
 Installation
 ------------
