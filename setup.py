@@ -47,12 +47,9 @@ setup(
         "progress",
         "mock",
         "future",
-        "schema==0.2.1",
+        "schema==0.3.1",
         "numpy",
         "scipy"
-    ],
-    dependency_links=[
-        "https://github.com/jmansilla/schema/tarball/master#egg=schema-0.2.1"
     ],
     include_package_data=False,
 )
