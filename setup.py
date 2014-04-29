@@ -12,7 +12,7 @@ long_description = open(os.path.join(base_path, 'README.rst')).read()
 
 setup(
     name="featureforge",
-    version="0.1.2",
+    version="0.1.3",
     description="A library to build and test machine learning features",
     long_description=long_description,
     author="Rafael Carrascosa, Daniel Moisset, Javier Mansilla",
@@ -20,6 +20,7 @@ setup(
     url="https://github.com/machinalis/featureforge",
     packages=[
         "featureforge",
+        "featureforge/experimentation"
     ],
     classifiers=[
         "Programming Language :: Python",
@@ -41,6 +42,9 @@ setup(
         "features", "testing", "vectorization", "preprocessing"
     ],
     install_requires=[
+        "docopt",
+        "pymongo",
+        "progress",
         "mock",
         "future",
         "schema==0.2.1",
