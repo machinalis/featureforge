@@ -22,7 +22,7 @@ preprocessing. Feature Forge helps you with:
 Installation
 ------------
 
-Just `pip install featureforge`. On pip 1.5.x you will need to put the --process-dependecy-links flag
+Just `pip install featureforge`.
 
 Documentation
 -------------
