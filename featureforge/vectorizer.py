@@ -36,7 +36,7 @@ class Vectorizer(object):
     featureforge.flattener.Flattener
     """
 
-    def __init__(self, features, tolerant=False, sparse=False):
+    def __init__(self, features, tolerant=False, sparse=True):
         # Upgrade `features` to `Feature` instances.
         features = list(map(make_feature, features))
         if tolerant:
