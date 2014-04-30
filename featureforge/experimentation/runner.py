@@ -47,7 +47,6 @@ def main(single_runner,
         GIT_INFO = get_git_info(use_git_info_from_path)
     else:
         GIT_INFO = None
-    print GIT_INFO
     for config in experiment_configurations:
         # Extend individual experiment config with the dynamic extender, if any
         config = copy(config)
