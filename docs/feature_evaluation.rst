@@ -79,6 +79,13 @@ enumerated or bag features (i.e., "animal", "vegetable" or "mineral") and the in
 for vector features.
 
 
+Sparse vs Dense Matrices
+------------------------
+
+By default, Vectorizer will construct a sparse numpy matrix which in the general case will consume significanly less memory.
+Anyway, by passing `sparse=False` as an argument when instantiating `Vectorizer` you can change this to use a dense matrix instead.
+
+
 Tolerant evaluation
 -------------------
 

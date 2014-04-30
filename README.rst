@@ -18,6 +18,8 @@ preprocessing. Feature Forge helps you with:
  * Evaluating your features on a data set, producing a feature evaluation
    matrix. The evaluator has a robust mode that allows you some tolerance both
    for invalid data and buggy features.
+ * Experimentation: running, registering, classifying and reproducing
+   experiments for determining best settings for your problems.
 
 Installation
 ------------
@@ -44,6 +46,9 @@ submitting github pull requests or issues.
 
 Changelog
 ---------
+0.1.5:
+    - Using sparse numpy matrices by default.
+
 0.1.4:
     - Discarded the need of using forked version of Schema library.
 
