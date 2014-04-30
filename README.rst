@@ -46,6 +46,9 @@ submitting github pull requests or issues.
 
 Changelog
 ---------
+0.1.5:
+    - Using sparse numpy matrices by default.
+
 0.1.4:
     - Discarded the need of using forked version of Schema library.
 
