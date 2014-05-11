@@ -63,7 +63,7 @@ class TestFeatureMappingFlattener(unittest.TestCase):
         self.assertRaises(ValueError, V.fit, [tuple()])
         self.assertRaises(ValueError, V.fit, [({},)])
         self.assertRaises(ValueError, V.fit, [([1], u"a"), ([], u"a")])
-        self.assertRaises(ValueError, V.fit, [(random,)])
+        self.assertRaises(Exception, V.fit, [(random,)])
         self.assertRaises(ValueError, V.fit, [([1, u"a"],)])
         self.assertRaises(ValueError, V.fit, [(u"a",), (1,)])
 
@@ -175,7 +175,7 @@ class TestFeatureMappingFlattener(unittest.TestCase):
             self.assertRaises(ValueError, V.fit_transform, [tuple()])
             self.assertRaises(ValueError, V.fit_transform, [({},)])
             self.assertRaises(ValueError, V.fit_transform, [([1], u"a"), ([], u"a")])
-            self.assertRaises(ValueError, V.fit_transform, [(random,)])
+            self.assertRaises(Exception, V.fit_transform, [(random,)])
             self.assertRaises(ValueError, V.fit_transform, [([1, u"a"],)])
             self.assertRaises(ValueError, V.fit_transform, [("a",), (1,)])
 
