@@ -50,7 +50,7 @@ class Vectorizer(object):
         self.flattener.fit(Xt, y)
         return self
 
-    def fit_transform(self, X, y):
+    def fit_transform(self, X, y=None):
         Xt = self.evaluator.fit_transform(X, y)
         return self.flattener.fit_transform(Xt, y)
 
