@@ -34,7 +34,7 @@ Documentation is available at http://feature-forge.readthedocs.org/en/latest/
 Contact information
 -------------------
 
-Feature Forge is © 2014 Machinalis (http://www.machinalis.com/). Its primary
+Feature Forge is copyright 2014 Machinalis (http://www.machinalis.com/). Its primary
 authors are:
 
  * Javier Mansilla <jmansilla@machinalis.com> (jmansilla at github)
