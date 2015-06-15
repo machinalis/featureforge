@@ -232,6 +232,19 @@ class TestFeatureMappingFlattener(unittest.TestCase):
 
         self.assertTrue(numpy.array_equal(YA, YB))
 
+    def test_sparse_single_zero(self):
+        random.seed("something about us")
+        V = FeatureMappingFlattener(sparse=True)
+        abc = [chr(i) for i in range(65, 123)]
+        X = [
+            (set(random.choice(abc) for _ in range(20)), )
+            for _ in range(7)
+        ]
+        element = chr(32)  # Clearly outside what was seen at training
+        V.fit(X)
+        X = V.transform([(set(element), )])
+        self.assertEqual(X.shape[0], 1)
+
 
 class TestBagOfWordsFit(unittest.TestCase):
 
