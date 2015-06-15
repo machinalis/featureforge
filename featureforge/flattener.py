@@ -289,10 +289,17 @@ class FeatureMappingFlattener(object):
         return result
 
     def _sparse_transform_step(self, datapoint):
+        """
+        Yields pairs (i, value) such that the row that represents `datapoint`
+        fulfills `row[i] == value`.
+        For valid values of `i` that are not yielded by this function it's true
+        that `row[i] == 0.0` (the sparseness condition).
+        """
         for i, data in enumerate(datapoint):
             if isinstance(data, float):
                 j = self.indexes[(i, None)]
-                yield j, data
+                if data != 0.0:
+                    yield j, data
             elif isinstance(data, str):
                 if (i, data) in self.indexes:
                     j = self.indexes[(i, data)]
@@ -305,7 +312,8 @@ class FeatureMappingFlattener(object):
                         j + len(data) - 1
 
                     for k, data_k in enumerate(data):
-                        yield j + k, data_k
+                        if data_k != 0.0:
+                            yield j + k, data_k
                 else:
                     counted_data = Counter(data)
                     for word, count in counted_data.items():
@@ -324,9 +332,8 @@ class FeatureMappingFlattener(object):
 
         for datapoint in self._iter_valid(X):
             for i, value in self._sparse_transform_step(datapoint):
-                if data != 0:
-                    data.append(value)
-                    indices.append(i)
+                data.append(value)
+                indices.append(i)
             indptr.append(len(data))
 
         if len(indptr) == 0:
@@ -357,9 +364,8 @@ class FeatureMappingFlattener(object):
         for datapoint in self._iter_valid(X, first=first):
             self._fit_step(datapoint)
             for i, value in self._sparse_transform_step(datapoint):
-                if data != 0:
-                    data.append(value)
-                    indices.append(i)
+                data.append(value)
+                indices.append(i)
             indptr.append(len(data))
 
         if len(indptr) == 0:
