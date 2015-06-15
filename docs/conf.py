@@ -22,7 +22,7 @@ except:
         def __getattr__(cls, name):
             return Mock()
 MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot',
-                'scipy.interpolate', 'numpy.distutils.core']
+                'scipy.interpolate', 'numpy.distutils.core', 'numpy.distutils']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
