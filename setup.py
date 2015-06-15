@@ -12,7 +12,7 @@ long_description = open(os.path.join(base_path, 'README.rst')).read()
 
 setup(
     name="featureforge",
-    version="0.1.5",
+    version="0.1.6",
     description="A library to build and test machine learning features",
     long_description=long_description,
     author="Rafael Carrascosa, Daniel Moisset, Javier Mansilla",
