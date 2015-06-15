@@ -12,11 +12,19 @@
 # serve to show the default.
 
 # Hack to make Read the docs compile
-import mock
+import sys
+try:
+    from mock import Mock
+except:
+    from unittest.mock import MagicMock
+    class Mock(MagicMock):
+        @classmethod
+        def __getattr__(cls, name):
+            return Mock()
 MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot',
                 'scipy.interpolate', 'numpy.distutils.core']
 for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = mock.Mock()
+    sys.modules[mod_name] = Mock()
 
 import sys, os
 
