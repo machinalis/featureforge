@@ -63,7 +63,7 @@ class TestFeatureMappingFlattener(unittest.TestCase):
         self.assertRaises(ValueError, V.fit, [tuple()])
         self.assertRaises(ValueError, V.fit, [({},)])
         self.assertRaises(ValueError, V.fit, [([1], u"a"), ([], u"a")])
-        self.assertRaises(ValueError, V.fit, [(random,)])
+        self.assertRaises(Exception, V.fit, [(random,)])
         self.assertRaises(ValueError, V.fit, [([1, u"a"],)])
         self.assertRaises(ValueError, V.fit, [(u"a",), (1,)])
 
@@ -175,7 +175,7 @@ class TestFeatureMappingFlattener(unittest.TestCase):
             self.assertRaises(ValueError, V.fit_transform, [tuple()])
             self.assertRaises(ValueError, V.fit_transform, [({},)])
             self.assertRaises(ValueError, V.fit_transform, [([1], u"a"), ([], u"a")])
-            self.assertRaises(ValueError, V.fit_transform, [(random,)])
+            self.assertRaises(Exception, V.fit_transform, [(random,)])
             self.assertRaises(ValueError, V.fit_transform, [([1, u"a"],)])
             self.assertRaises(ValueError, V.fit_transform, [("a",), (1,)])
 
@@ -231,6 +231,19 @@ class TestFeatureMappingFlattener(unittest.TestCase):
         YB = B.fit_transform(X)
 
         self.assertTrue(numpy.array_equal(YA, YB))
+
+    def test_sparse_single_zero(self):
+        random.seed("something about us")
+        V = FeatureMappingFlattener(sparse=True)
+        abc = [chr(i) for i in range(65, 123)]
+        X = [
+            (set(random.choice(abc) for _ in range(20)), )
+            for _ in range(7)
+        ]
+        element = chr(32)  # Clearly outside what was seen at training
+        V.fit(X)
+        X = V.transform([(set(element), )])
+        self.assertEqual(X.shape[0], 1)
 
 
 class TestBagOfWordsFit(unittest.TestCase):

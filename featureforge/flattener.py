@@ -196,7 +196,7 @@ class FeatureMappingFlattener(object):
             first = next(X)
         except (TypeError, StopIteration):
             raise ValueError("Cannot fit with an empty dataset")
-        logger.info("Starting flattener.fit")
+        logger.debug("Starting flattener.fit")
         # Build basic schema
         self._fit_first(first)
 
@@ -206,8 +206,8 @@ class FeatureMappingFlattener(object):
             for datapoint in self._iter_valid(X, first=first):
                 self._fit_step(datapoint)
 
-        logger.info("Finished flattener.fit")
-        logger.info("Input tuple size %s, output vector size %s" %
+        logger.debug("Finished flattener.fit")
+        logger.debug("Input tuple size %s, output vector size %s" %
                     (len(first), len(self.indexes)))
         return self
 
@@ -238,7 +238,7 @@ class FeatureMappingFlattener(object):
         return vector
 
     def _transform(self, X):
-        logger.info("Starting flattener.transform")
+        logger.debug("Starting flattener.transform")
         matrix = []
 
         for datapoint in self._iter_valid(X):
@@ -250,8 +250,8 @@ class FeatureMappingFlattener(object):
         else:
             result = numpy.concatenate(matrix)
 
-        logger.info("Finished flattener.transform")
-        logger.info("Matrix has size %sx%s" % result.shape)
+        logger.debug("Finished flattener.transform")
+        logger.debug("Matrix has size %sx%s" % result.shape)
         return result
 
     def _fit_transform(self, X):
@@ -260,7 +260,7 @@ class FeatureMappingFlattener(object):
             first = next(X)
         except (TypeError, StopIteration):
             raise ValueError("Cannot fit with an empty dataset")
-        logger.info("Starting flattener.fit_transform")
+        logger.debug("Starting flattener.fit_transform")
 
         self._fit_first(first)
 
@@ -284,15 +284,22 @@ class FeatureMappingFlattener(object):
         else:
             result = numpy.concatenate(matrix)
 
-        logger.info("Finished flattener.fit_transform")
-        logger.info("Matrix has size %sx%s" % result.shape)
+        logger.debug("Finished flattener.fit_transform")
+        logger.debug("Matrix has size %sx%s" % result.shape)
         return result
 
     def _sparse_transform_step(self, datapoint):
+        """
+        Yields pairs (i, value) such that the row that represents `datapoint`
+        fulfills `row[i] == value`.
+        For valid values of `i` that are not yielded by this function it's true
+        that `row[i] == 0.0` (the sparseness condition).
+        """
         for i, data in enumerate(datapoint):
             if isinstance(data, float):
                 j = self.indexes[(i, None)]
-                yield j, data
+                if data != 0.0:
+                    yield j, data
             elif isinstance(data, str):
                 if (i, data) in self.indexes:
                     j = self.indexes[(i, data)]
@@ -305,7 +312,8 @@ class FeatureMappingFlattener(object):
                         j + len(data) - 1
 
                     for k, data_k in enumerate(data):
-                        yield j + k, data_k
+                        if data_k != 0.0:
+                            yield j + k, data_k
                 else:
                     counted_data = Counter(data)
                     for word, count in counted_data.items():
@@ -316,7 +324,7 @@ class FeatureMappingFlattener(object):
                             yield j, count
 
     def _sparse_transform(self, X):
-        logger.info("Starting flattener.transform")
+        logger.debug("Starting flattener.transform")
 
         data = array.array("d")
         indices = array.array("i")
@@ -324,20 +332,19 @@ class FeatureMappingFlattener(object):
 
         for datapoint in self._iter_valid(X):
             for i, value in self._sparse_transform_step(datapoint):
-                if data != 0:
-                    data.append(value)
-                    indices.append(i)
+                data.append(value)
+                indices.append(i)
             indptr.append(len(data))
 
-        if not data:
+        if len(indptr) == 0:
             result = numpy.zeros((0, len(self.indexes)))
         else:
             result = csr_matrix((data, indices, indptr),
                                 dtype=float,
                                 shape=(len(indptr) - 1, len(self.indexes)))
 
-        logger.info("Finished flattener.transform")
-        logger.info("Matrix has size %sx%s" % result.shape)
+        logger.debug("Finished flattener.transform")
+        logger.debug("Matrix has size %sx%s" % result.shape)
         return result
 
     def _sparse_fit_transform(self, X):
@@ -346,7 +353,7 @@ class FeatureMappingFlattener(object):
             first = next(X)
         except (TypeError, StopIteration):
             raise ValueError("Cannot fit with an empty dataset")
-        logger.info("Starting flattener.fit_transform")
+        logger.debug("Starting flattener.fit_transform")
 
         self._fit_first(first)
 
@@ -357,20 +364,19 @@ class FeatureMappingFlattener(object):
         for datapoint in self._iter_valid(X, first=first):
             self._fit_step(datapoint)
             for i, value in self._sparse_transform_step(datapoint):
-                if data != 0:
-                    data.append(value)
-                    indices.append(i)
+                data.append(value)
+                indices.append(i)
             indptr.append(len(data))
 
-        if not data:
+        if len(indptr) == 0:
             result = numpy.zeros((0, len(self.indexes)))
         else:
             result = csr_matrix((data, indices, indptr),
                                 dtype=float,
                                 shape=(len(indptr) - 1, len(self.indexes)))
 
-        logger.info("Finished flattener.fit_transform")
-        logger.info("Matrix has size %sx%s" % result.shape)
+        logger.debug("Finished flattener.fit_transform")
+        logger.debug("Matrix has size %sx%s" % result.shape)
         return result
 
 
