@@ -46,6 +46,11 @@ submitting github pull requests or issues.
 
 Changelog
 ---------
+0.1.6:
+    - Bug fixes related to sparse matrices.
+    - Small documentation improvements.
+    - Reduced default logging verbosity.
+
 0.1.5:
     - Using sparse numpy matrices by default.
 
