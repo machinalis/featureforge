@@ -329,7 +329,7 @@ class FeatureMappingFlattener(object):
                     indices.append(i)
             indptr.append(len(data))
 
-        if not data:
+        if len(indptr) == 0:
             result = numpy.zeros((0, len(self.indexes)))
         else:
             result = csr_matrix((data, indices, indptr),
@@ -362,7 +362,7 @@ class FeatureMappingFlattener(object):
                     indices.append(i)
             indptr.append(len(data))
 
-        if not data:
+        if len(indptr) == 0:
             result = numpy.zeros((0, len(self.indexes)))
         else:
             result = csr_matrix((data, indices, indptr),
