@@ -272,7 +272,7 @@ decorator if you prefer defining functions but working with objects.
 As an implementation detail (and subject to change), all the internals of our
 library work with `Feature` instances and call `make_feature` internally when
 receiving a function. So it's possible that you see some Feature() code in a
-tracebuck while debugging. But for most cases, the function based API should be
+traceback while debugging. But for most cases, the function based API should be
 enough and is more user friendly
 
 
