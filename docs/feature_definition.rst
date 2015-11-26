@@ -325,7 +325,7 @@ can be specified as
     @output_schema(tuple(float), lambda v: len(v) == 2 and v != (0.0, 0.0))
 
 Note that schemas like ``tuple(float)`` mean "a tuple where all elements are
-floats" but does not specify its length. A schema ``tuple(flaot, int)`` means
+floats" but does not specify its length. A schema ``tuple(float, int)`` means
 "a tuple where every element is a float or an int"
 
 Data points tend to be more complex objects than feature values, so there is a
