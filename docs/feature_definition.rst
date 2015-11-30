@@ -272,7 +272,7 @@ decorator if you prefer defining functions but working with objects.
 As an implementation detail (and subject to change), all the internals of our
 library work with `Feature` instances and call `make_feature` internally when
 receiving a function. So it's possible that you see some Feature() code in a
-tracebuck while debugging. But for most cases, the function based API should be
+traceback while debugging. But for most cases, the function based API should be
 enough and is more user friendly
 
 
@@ -307,7 +307,6 @@ so typically one of the following ``output_schema`` will be ok:
  * ``int`` or ``float`` for numeric features
  * ``unicode`` for enumerations (on python 3, ``str``)
  * ``list(int)`` or ``list(float)`` for numeric vectors
- * ``list(int)`` or ``list(float)`` for numeric vectors
  * ``list(hashable)`` or ``set(hashable)`` or ``tuple(hashable)`` for bag of words, where ``hashable`` is any hashable except numeric.
 
 In addition to a type specification, it is sometimes useful to add to the
@@ -326,7 +325,7 @@ can be specified as
     @output_schema(tuple(float), lambda v: len(v) == 2 and v != (0.0, 0.0))
 
 Note that schemas like ``tuple(float)`` mean "a tuple where all elements are
-floats" but does not specify its length. A schema ``tuple(flaot, int)`` means
+floats" but does not specify its length. A schema ``tuple(float, int)`` means
 "a tuple where every element is a float or an int"
 
 Data points tend to be more complex objects than feature values, so there is a
