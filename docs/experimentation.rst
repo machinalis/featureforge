@@ -172,7 +172,7 @@ You can access, filter and see the finished experiments simply using the mongo s
     sm = StatsManager(None, 'Your-database-name')
 
     for experiment in sm.iter_results():
-        print(experiment.results)
+        print(experiment['results'])
 
 
 
