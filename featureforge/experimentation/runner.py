@@ -29,11 +29,12 @@ def main(single_runner,
          conf_extender=None,
          booking_duration=BOOKING_DURATION,
          use_git_info_from_path=None,
-         version=u'Run experiments 0.1'):
+         version=u'Run experiments 0.1',
+         stop_on_first_error=False):
     command_name = sys.argv[0]
     custom__doc__ = __doc__.replace(u'run_experiments.py', command_name)
     logging.basicConfig(level=logging.DEBUG,
-                        format=u"\n%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+                        format=u"%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     opts = docopt(custom__doc__, version=version)
 
@@ -72,6 +73,8 @@ def main(single_runner,
             bar.next()
             logging.error(u"Experiment failed because of {} {}, "
                           u"skipping...".format(type(e).__name__, e))
+            if stop_on_first_error:
+                raise
             continue
         else:
             # Store result
