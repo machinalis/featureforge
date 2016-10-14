@@ -38,8 +38,8 @@ def main(single_runner,
 
     opts = docopt(custom__doc__, version=version)
 
-    stats = StatsManager(booking_duration=booking_duration,
-                         db_name=opts[u"<dbname>"],
+    stats = StatsManager(db_name=opts[u"<dbname>"],
+                         booking_duration=booking_duration,
                          db_uri=opts[u"--dbserver"])
 
     experiment_configurations = json.load(open(opts[u"<configs.json>"]))
