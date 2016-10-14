@@ -3,6 +3,7 @@ import os.path
 import sys
 
 from future.builtins import str
+from warnings import warn
 
 PY2 = sys.version < '3'
 # Tuple of the supported types for individual elements.
@@ -79,3 +80,7 @@ def get_git_info(repo_path):
     finally:
         # Always recover original running directory, just in case
         os.chdir(cwd)
+
+def deprecation(message, stacklevel=2):
+    """Shows a deprecation message"""
+    warn(message, DeprecationWarning, stacklevel=2)
