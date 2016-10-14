@@ -8,7 +8,7 @@ from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 from future.builtins import str
 
-from featureforge.experimentation.utils import DictNormalizer
+from featureforge.experimentation.utils import deprecation, DictNormalizer
 
 logger = logging.getLogger(__name__)
 
@@ -44,22 +44,38 @@ class StatsManager(object):
     STATUS_BOOKED = 'status_booked'
     STATUS_SOLVED = 'status_solved'
 
-    def __init__(self, booking_duration, db_name, db_uri=None,
+    def __init__(self, db_name, booking_duration=None, db_uri=None,
                  keep_running_on_errors=True):
         """
         Creates new instance of Stats Manager.
         Parameters:
-            - booking_duration,
             - db_name: Name of the mongo database to use (will be created if needed)
+            - booking_duration, Default None. Means that booking time will not be take
+                                in count, so booking_ticket cannot be stolen.
             - db_uri: Default is None, which will be treated as localhost and the default
                 dbserver port.
             - keep_running_on_errors: Default True. Indicates if errors shall be raised,
                 or if we shall attempt to recover from issues and keep running (errors
                 will be always logged to stderr)
         """
+        if isinstance(db_name, int) or db_name is None or isinstance(booking_duration, str):
+            message = (
+                'Init arguments will change position. '
+                'Take a look to http://feature-forge.readthedocs.io/en/latest/experimentation.html'
+                '#exploring-the-finished-experiments')
+            deprecation(message)
+            # swap the values of db_name and booking_duration to ensure the old behaviour
+            aux = db_name
+            db_name = booking_duration
+            booking_duration = aux
+
         self.keep_running_on_errors = keep_running_on_errors
         self._db_config = {'uri': db_uri, 'name': db_name}
-        self.booking_delta = timedelta(seconds=booking_duration)
+
+        booking_delta = None
+        if booking_duration is not None:
+            booking_delta = timedelta(seconds=booking_duration)
+        self.booking_delta = booking_delta
         self.setup_database_connection()
         self.normalizer = DictNormalizer()
 
@@ -112,18 +128,23 @@ class StatsManager(object):
         except DuplicateKeyError:
             # Ok, experiment is already registered. Let's see if it was already solved or
             # not. If not, and if it was booked "long time ago", we'll steal the booking
-            query = {self.marshalled_key: key,
-                     self.experiment_status: self.STATUS_BOOKED,
-                     self.booking_at_key: {'$lte': now - self.booking_delta}
-                     }
-            update = {'$set': {self.booking_at_key: now}}
-            experiment = self.data.find_and_modify(
-                query, update=update,
-                new=True  # So the modified object is returned
-            )
-            if experiment:
-                logger.info("Stolen booking ticket %s" % key)
-                ticket = experiment[u'_id']
+            # depends on booking_delta value.
+            if self.booking_delta is not None:
+                query = {self.marshalled_key: key,
+                         self.experiment_status: self.STATUS_BOOKED,
+                         self.booking_at_key: {'$lte': now - self.booking_delta}
+                         }
+                update = {'$set': {self.booking_at_key: now}}
+                experiment = self.data.find_and_modify(
+                    query, update=update,
+                    new=True  # So the modified object is returned
+                )
+                if experiment:
+                    logger.info("Stolen booking ticket %s" % key)
+                    ticket = experiment[u'_id']
+            else:
+                # We make explicit this action.
+                pass
         return ticket
 
     def store_results(self, booking_ticket, results):
