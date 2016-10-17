@@ -92,7 +92,7 @@ class StatsManager(object):
     def setup_database_connection(self):
         self.db = self._db_connect()
         self.data = self.db[EXPERIMENTS_COLLECTION_NAME]
-        self.data.ensure_index(self.marshalled_key, unique=True)
+        self.data.create_index(self.marshalled_key, unique=True)
 
     def get_normalized_and_key(self, config):
         normalized = self.normalizer(deepcopy(config))
