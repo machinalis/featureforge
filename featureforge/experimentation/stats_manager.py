@@ -3,15 +3,15 @@ from datetime import datetime, timedelta
 import json
 import hashlib
 import logging
+import warnings
 
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 from future.builtins import str
 
-from featureforge.experimentation.utils import deprecation, DictNormalizer
+from featureforge.experimentation.utils import DictNormalizer
 
 logger = logging.getLogger(__name__)
-
 
 EXPERIMENTS_COLLECTION_NAME = 'experiment_data'
 
@@ -59,12 +59,15 @@ class StatsManager(object):
                 will be always logged to stderr)
         """
         if isinstance(db_name, int) or db_name is None or isinstance(booking_duration, str):
-            message = (
-                'Init arguments will change position. '
-                'Take a look to http://feature-forge.readthedocs.io/en/latest/experimentation.html'
-                '#exploring-the-finished-experiments')
-            deprecation(message)
-            # swap the values of db_name and booking_duration to ensure the old behaviour
+            with warnings.catch_warnings():
+                # We only want to show this warning message
+                warnings.simplefilter('always', DeprecationWarning)
+                message = (
+                    'Init arguments will change. '
+                    'Take a look to http://feature-forge.readthedocs.io/en/latest/experimentation.html'   # NOQA
+                    '#exploring-the-finished-experiments')
+                warnings.warn(message, DeprecationWarning)
+            # swap the values of db_name and booking_duration to ensure the previous behaviour
             aux = db_name
             db_name = booking_duration
             booking_duration = aux
