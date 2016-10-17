@@ -145,9 +145,7 @@ class StatsManager(object):
                 if experiment:
                     logger.info("Stolen booking ticket %s" % key)
                     ticket = experiment[u'_id']
-            else:
-                # We make explicit this action.
-                pass
+
         return ticket
 
     def store_results(self, booking_ticket, results):
