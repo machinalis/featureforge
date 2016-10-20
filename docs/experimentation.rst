@@ -169,7 +169,7 @@ You can access, filter and see the finished experiments simply using the mongo s
 
     from featureforge.experimentation.stats_manager import StatsManager
 
-    sm = StatsManager(None, 'Your-database-name')
+    sm = StatsManager('Your-database-name')
 
     for experiment in sm.iter_results():
         print(experiment.results)
