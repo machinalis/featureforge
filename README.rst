@@ -46,6 +46,10 @@ submitting github pull requests or issues.
 
 Changelog
 ---------
+0.1.7:
+    - StatsManager api change (order of arguments swapped)
+    - For experimentation, enabled a way of booking experiments forever.
+
 0.1.6:
     - Bug fixes related to sparse matrices.
     - Small documentation improvements.
