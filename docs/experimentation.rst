@@ -83,7 +83,7 @@ database.
 
 Tips:
  - Monitor the memory usage of each experiment. Running several in parallel may use all the memory available, slowing down the entire experimentation.
- - Bookings are not forever. By default they last 10 minutes, but you can set it to whatever you want. Once that an experiment booking expires, it may be booked again and re-run by anyone.
+ - Pay attention to booking time. Default booking time is set to 10 minutes, but it can be set to whatever time you want, even forever if you change booking time to 'None'. Once the experiment booking expires, that slot may be booked again, or re-run by anyone. 
 
 
 Dynamic experiment configuration
