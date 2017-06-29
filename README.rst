@@ -24,7 +24,7 @@ preprocessing. Feature Forge helps you with:
 Installation
 ------------
 
-Just `pip install featureforge`.
+Just ``pip install featureforge``.
 
 Documentation
 -------------
