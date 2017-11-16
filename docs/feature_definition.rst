@@ -243,7 +243,7 @@ This is a possible example
             self.bad_words = set(open(bad_words_filename).readlines())
 
         def _evaluate(self, message):
-            subject_words = set(message["subject"]).split()
+            subject_words = set(message["subject"].split())
             return bool(subject_words & self.bad_words)
 
     has_bad_word_english = SubjectHasBadWord("english-badwords.txt")
